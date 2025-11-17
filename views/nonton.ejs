@@ -1,0 +1,122 @@
+<%- include('partials/header', { /* data header */ }) %>
+
+<%# --- BARU: Schema JSON-LD untuk Halaman Episode --- %>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TVEpisode",
+  "name": <%- JSON.stringify(data.title) %>,
+  "url": "<%= pageUrl %>",
+  "image": "<%= pageImage %>",
+  "description": <%- JSON.stringify(pageDescription) %>,
+  
+  <%# Coba ekstrak nomor episode dari judul %>
+  <% const epNumMatch = data.title.match(/Episode (\\d+)/i); %>
+  <% if (epNumMatch && epNumMatch[1]) { %>
+    "episodeNumber": "<%= epNumMatch[1] %>",
+  <% } %>
+
+  "datePublished": "<%= new Date(data.createdAt || Date.now()).toISOString() %>",
+
+  <%# Tautkan kembali ke Seri Anime induknya %>
+  "partOfSeries": {
+    "@type": "TVSeries",
+    "name": "<%= data.animeTitle || '' %>",
+    <% if (data.animeSlug) { %>
+      "url": "<%= SITE_URL %>/anime/<%= data.animeSlug %>"
+    <% } %>
+  },
+
+  <%# Menandakan konten ini bisa ditonton di halaman ini %>
+  "potentialAction": {
+    "@type": "WatchAction",
+    "target": "<%= pageUrl %>"
+  }
+}
+</script>
+<%# --- AKHIR SCHEMA --- %>
+
+<% if(data && data.title) { %> <%# Pastikan data episode ada %>
+  <div class="col-lg-12">
+    <div class="content__tags"><%= data.title %> Subtitle Indonesia, download <%= data.title %> Subtitle Indonesia, unduh <%= data.title %> Subtitle Indonesia, streaming <%= data.title %> Subtitle Indonesia, nonton <%= data.title %> Subtitle Indonesia, anime <%= data.title %> Subtitle Indonesia, download anime <%= data.title %> Subtitle Indonesia, unduh anime <%= data.title %> Subtitle Indonesia, streaming anime <%= data.title %> Subtitle Indonesia, nonton anime <%= data.title %> Subtitle Indonesia</div>
+  </div>
+  <h1><%= data.title %></h1>
+
+  <div class="video-container">
+    <% if (data.streaming && data.streaming.length > 0 && data.streaming[0].url) { %>
+      <iframe
+        id="videoPlayer"
+        src="<%- Buffer.from(data.streaming[0].url, 'base64').toString('utf-8') %>"
+        frameborder="0" scrolling="no" allowfullscreen="true">
+      </iframe>
+    <% } else { %>
+      <p style="text-align: center; padding: 20px;">Maaf, tidak ada link stream yang ditemukan.</p>
+    <% } %>
+  </div>
+
+  <%# Navigasi Episode %>
+  <div class="episode-nav">
+    <% if (nav.prev) { %> <a href="/nonton/<%= nav.prev.url %>" class="nav-btn prev">« Prev</a> <% } else { %> <span class="nav-btn disabled">« Prev</span> <% } %>
+    <% if (nav.all) { %> <a href="<%= nav.all %>" class="nav-btn all">Semua Episode</a> <% } %>
+    <% if (nav.next) { %> <a href="/nonton/<%= nav.next.url %>" class="nav-btn next">Next »</a> <% } else { %> <span class="nav-btn disabled">Next »</span> <% } %>
+  </div>
+
+  <%# Pilihan Stream %>
+  <% if(data.streaming && data.streaming.length > 0) { %>
+    <h2>Pilih Stream</h2>
+    <div class="stream-selector">
+      <% data.streaming.forEach((stream, index) => { %>
+        <button class="stream-btn <%= index === 0 ? 'active' : '' %>" data-url="<%- stream.url %>">
+          <%= stream.name %>
+        </button>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <%# --- BLOK DOWNLOAD DIPERBAIKI --- %>
+  <div class="download-section">
+    <h2>Link Download</h2>
+    <% if(data.downloads && data.downloads.length > 0) { %>
+      <% data.downloads.forEach(dl => { %>
+        <div class="quality-group">
+          <h3><%= dl.quality %></h3>
+          <div class="download-links">
+            <% dl.links.forEach(link => { %>
+              <a href="/safelink?url=<%= link.url %>" target="_blank" rel="noopener noreferrer">
+                <%= link.host %>
+              </a>
+            <% }) %>
+          </div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <%# Tampilkan pesan "tidak ada link" di dalam .download-section %>
+      <p>Maaf, tidak ada link download yang ditemukan.</p>
+    <% } %>
+  </div>
+  <%# --- AKHIR BLOK DOWNLOAD --- %>
+
+
+  <%# Rekomendasi %>
+  <% if (recommendations && recommendations.length > 0) { %>
+    <div class="recommendations recommendations-nonton">
+      <h2>Rekomendasi Lainnya</h2>
+      <div class="grid">
+        <% recommendations.forEach(anime => { %>
+          <div class="card">
+            <a href="/anime/<%= anime.pageSlug %>">
+              <img src="<%= anime.imageUrl || '/images/default.jpg' %>" alt="<%= anime.title %>" loading="lazy">
+              <h3><%= anime.title %></h3>
+            </a>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
+
+<% } else { %>
+  <h1>Episode Tidak Ditemukan</h1>
+  <p>Maaf, data untuk episode ini tidak dapat dimuat.</p>
+<% } %>
+
+<%- include('partials/footer', { page: page }) %>

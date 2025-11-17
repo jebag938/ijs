@@ -1,0 +1,164 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+
+<h1>Edit Episode: <%= episode.title || episode.episodeSlug %></h1>
+
+<% if (episode) { %>
+    <form class="admin-form" id="editEpisodeForm" action="/admin/episode/<%= encodeURIComponent(episode.episodeSlug) %>/edit" method="POST">
+        <h2>Detail Episode</h2>
+        <div>
+            <label for="title">Judul Episode:</label>
+            <input type="text" id="title" name="title" value="<%= episode.title || '' %>">
+        </div>
+        <div>
+            <label for="episodeSlug">Slug Episode (Read Only):</label>
+            <input type="text" id="episodeSlug" name="episodeSlug" value="<%= episode.episodeSlug || '' %>" readonly>
+        </div>
+        <div>
+            <label for="thumbnailUrl">URL Thumbnail:</label>
+            <input type="text" id="thumbnailUrl" name="thumbnailUrl" value="<%= episode.thumbnailUrl || '' %>">
+            <% if(episode.thumbnailUrl) { %><img src="<%= episode.thumbnailUrl %>" alt="Preview" style="max-height: 100px; margin-top: 5px; border-radius: 4px;"><% } %>
+        </div>
+        <div>
+            <label for="episodeDate">Tanggal Episode:</label>
+            <input type="text" id="episodeDate" name="episodeDate" value="<%= episode.episodeDate || '' %>">
+        </div>
+
+        <hr style="margin: 30px 0; border-color: var(--admin-border);">
+
+        <h2>Streaming Links</h2>
+        <div id="streaming-links-container">
+            <%# Loop data streaming yang ada %>
+            <% if(episode.streaming && episode.streaming.length > 0) { %>
+                <% episode.streaming.forEach((stream, index) => { %>
+                    <div class="link-group link-row">
+                        <label for="stream_name_<%= index %>">Server:</label>
+                        <input type="text" id="stream_name_<%= index %>" name="streams[<%= index %>][name]" value="<%= stream.name %>" placeholder="Nama Server (cth: turbovid)">
+                        <label for="stream_url_<%= index %>">URL:</label>
+                        <input type="url" id="stream_url_<%= index %>" name="streams[<%= index %>][url]" value="<%= stream.url %>" placeholder="https://...">
+                        <button type="button" class="btn btn-danger remove-stream-btn" style="margin-left: auto;">Remove</button>
+                    </div>
+                <% }) %>
+            <% } %>
+        </div>
+        <button type="button" id="add-stream-btn" class="btn btn-secondary">Tambah Link Stream</button>
+
+        <hr style="margin: 30px 0; border-color: var(--admin-border);">
+
+        <h2>Download Links</h2>
+        <div id="download-links-container">
+             <%# Loop data download yang ada %>
+             <% if(episode.downloads && episode.downloads.length > 0) { %>
+                <% episode.downloads.forEach((dl, qualityIndex) => { %>
+                    <div class="quality-group-admin">
+                        <div class="quality-header">
+                            <label for="quality_name_<%= qualityIndex %>">Kualitas:</label>
+                            <input type="text" id="quality_name_<%= qualityIndex %>" name="downloads[<%= qualityIndex %>][quality]" value="<%= dl.quality %>" placeholder="Contoh: 1080p">
+                            <button type="button" class="btn btn-danger remove-quality-btn">Remove Quality</button>
+                        </div>
+                        <div class="download-links-list">
+                            <% dl.links.forEach((link, linkIndex) => { %>
+                                <div class="link-row">
+                                    <label for="dl_host_<%= qualityIndex %>_<%= linkIndex %>">Host:</label>
+                                    <input type="text" id="dl_host_<%= qualityIndex %>_<%= linkIndex %>" name="downloads[<%= qualityIndex %>][links][<%= linkIndex %>][host]" value="<%= link.host %>" placeholder="Nama Host (cth: Drive)">
+                                    <label for="dl_url_<%= qualityIndex %>_<%= linkIndex %>">URL:</label>
+                                    <input type="url" id="dl_url_<%= qualityIndex %>_<%= linkIndex %>" name="downloads[<%= qualityIndex %>][links][<%= linkIndex %>][url]" value="<%= link.url %>" placeholder="https://...">
+                                    <button type="button" class="btn btn-danger remove-download-link-btn" style="margin-left: auto;">Remove Link</button>
+                                </div>
+                            <% }) %>
+                         </div>
+                        <button type="button" class="btn btn-secondary add-download-link-btn" data-quality-index="<%= qualityIndex %>" style="margin-top: 10px;">Tambah Link Download</button>
+                    </div>
+                <% }) %>
+             <% } %>
+        </div>
+        <button type="button" id="add-quality-btn" class="btn btn-secondary">Tambah Kualitas Download</button>
+
+        <hr style="margin: 30px 0; border-color: var(--admin-border);">
+
+        <button type="submit" class="btn btn-success">Update Episode</button>
+    </form>
+<% } else { %>
+    <p>Episode tidak ditemukan.</p>
+<% } %>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const streamContainer = document.getElementById('streaming-links-container');
+    const addStreamBtn = document.getElementById('add-stream-btn');
+    const downloadContainer = document.getElementById('download-links-container');
+    const addQualityBtn = document.getElementById('add-quality-btn');
+    let streamIndex = streamContainer.querySelectorAll('.link-group').length;
+    let qualityIndex = downloadContainer.querySelectorAll('.quality-group-admin').length;
+
+    // --- STREAMING ---
+    addStreamBtn.addEventListener('click', () => {
+        const div = document.createElement('div');
+        div.className = 'link-group link-row';
+        div.innerHTML = `
+            <label for="stream_name_${streamIndex}">Server:</label>
+            <input type="text" id="stream_name_${streamIndex}" name="streams[${streamIndex}][name]" placeholder="Nama Server">
+            <label for="stream_url_${streamIndex}">URL:</label>
+            <input type="url" id="stream_url_${streamIndex}" name="streams[${streamIndex}][url]" placeholder="https://...">
+            <button type="button" class="btn btn-danger remove-stream-btn" style="margin-left: auto;">Remove</button>
+        `;
+        streamContainer.appendChild(div);
+        streamIndex++;
+    });
+    
+    streamContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-stream-btn')) {
+            e.target.closest('.link-group').remove();
+        }
+    });
+
+    // --- DOWNLOADS ---
+    addQualityBtn.addEventListener('click', () => {
+        const div = document.createElement('div');
+        div.className = 'quality-group-admin';
+        const currentQualityIndex = qualityIndex; // Simpan index saat ini
+        div.innerHTML = `
+            <div class="quality-header">
+                <label for="quality_name_${currentQualityIndex}">Kualitas:</label>
+                <input type="text" id="quality_name_${currentQualityIndex}" name="downloads[${currentQualityIndex}][quality]" placeholder="Contoh: 720p">
+                <button type="button" class="btn btn-danger remove-quality-btn">Remove Quality</button>
+            </div>
+            <div class="download-links-list">
+                </div>
+            <button type="button" class="btn-secondary add-download-link-btn" data-quality-index="${currentQualityIndex}" style="margin-top: 10px;">Tambah Link Download</button>
+        `;
+        downloadContainer.appendChild(div);
+        qualityIndex++;
+    });
+    
+    downloadContainer.addEventListener('click', (e) => {
+        // Hapus Kualitas
+        if (e.target.classList.contains('remove-quality-btn')) {
+            e.target.closest('.quality-group-admin').remove();
+        }
+        
+        // Tambah Link Download di dalam Kualitas
+        if (e.target.classList.contains('add-download-link-btn')) {
+            const qualityIdx = e.target.getAttribute('data-quality-index');
+            const linksListDiv = e.target.previousElementSibling; 
+            const linkIndex = linksListDiv.querySelectorAll('.link-row').length;
+            const linkDiv = document.createElement('div');
+            linkDiv.className = 'link-row';
+            linkDiv.innerHTML = `
+                <label for="dl_host_${qualityIdx}_${linkIndex}">Host:</label>
+                <input type="text" id="dl_host_${qualityIdx}_${linkIndex}" name="downloads[${qualityIdx}][links][${linkIndex}][host]" placeholder="Nama Host">
+                <label for="dl_url_${qualityIdx}_${linkIndex}">URL:</label>
+                <input type="url" id="dl_url_${qualityIdx}_${linkIndex}" name="downloads[${qualityIdx}][links][${linkIndex}][url]" placeholder="https://...">
+                <button type="button" class="btn btn-danger remove-download-link-btn" style="margin-left: auto;">Remove Link</button>
+            `;
+            linksListDiv.appendChild(linkDiv);
+        }
+        
+        // Hapus Link Download
+        if (e.target.classList.contains('remove-download-link-btn')) {
+            e.target.closest('.link-row').remove();
+        }
+    });
+});
+</script>
+
+<%- include('../admin/partials/footer', { page: page }) %>

@@ -1,0 +1,23 @@
+# Abaikan file environment
+.env
+
+# Abaikan semua file di dalam node_modules
+node_modules/
+
+# Abaikan file all_slugs_cv.txt
+all_slugs_cv.txt
+batch_importer.js
+batch_scrape_episodes.js
+scrapelistCv.js
+server-scraper.js
+all_anime_cv.json
+new.js
+public/images/episodes
+clearCache.js
+indohentai-main.zip
+google_index.js
+google_index_manual.js
+google_index_otomatis.js
+google_indexing_history.json
+indexnow.js
+scrape-episode.js

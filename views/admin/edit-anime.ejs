@@ -1,0 +1,263 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+
+<h1>Edit Anime: <%= anime.title %></h1>
+
+<% if (anime) { %>
+
+    <%# --- FORM UTAMA: EDIT ANIME --- %>
+    <form class="admin-form" id="mainAnimeForm" action="/admin/anime/<%= encodeURIComponent(anime.pageSlug) %>/edit" method="POST">
+        <h2>Detail Anime</h2>
+        <div>
+            <label for="title">Judul:</label>
+            <input type="text" id="title" name="title" value="<%= anime.title || '' %>">
+        </div>
+        <div>
+             <label for="alternativeTitle">Judul Alternatif:</label>
+            <input type="text" id="alternativeTitle" name="alternativeTitle" value="<%= anime.alternativeTitle || '' %>">
+        </div>
+        <div>
+            <label for="pageSlug">Slug (Read Only):</label>
+            <input type="text" id="pageSlug" name="pageSlug" value="<%= anime.pageSlug || '' %>" readonly>
+        </div>
+        <div>
+             <label for="imageUrl">URL Gambar:</label>
+            <input type="text" id="imageUrl" name="imageUrl" value="<%= anime.imageUrl || '' %>">
+            <% if(anime.imageUrl) { %><img src="<%= anime.imageUrl %>" alt="Preview" style="max-height: 100px; margin-top: 5px; border-radius: 4px;"><% } %>
+        </div>
+        <div>
+            <label for="synopsis">Sinopsis:</label>
+            <textarea id="synopsis" name="synopsis"><%= anime.synopsis || '' %></textarea>
+        </div>
+
+        <hr style="margin: 20px 0; border-color: var(--admin-border);">
+        <h3>Info Detail</h3>
+        <div>
+            <label for="info.Status">Status:</label>
+             <input type="text" id="info.Status" name="info.Status" value="<%= anime.info?.Status || '' %>">
+        </div>
+        <div>
+            <label for="info.Released">Released:</label>
+            <input type="text" id="info.Released" name="info.Released" value="<%= anime.info?.Released || '' %>">
+        </div>
+        <div>
+            <label for="info.Type">Type:</label>
+            <input type="text" id="info.Type" name="info.Type" value="<%= anime.info?.Type || '' %>">
+        </div>
+        <div>
+            <label for="info.Studio">Studio:</label>
+            <input type="text" id="info.Studio" name="info.Studio" value="<%= anime.info?.Studio || '' %>">
+        </div>
+        <div>
+            <label for="info.Producers">Producers:</label>
+            <input type="text" id="info.Producers" name="info.Producers" value="<%= anime.info?.Producers || '' %>">
+        </div>
+
+        <hr style="margin: 20px 0; border-color: var(--admin-border);">
+        <h3>Genre</h3>
+        <div>
+            <label for="genres">Genre (pisahkan dengan koma):</label>
+            <input type="text" id="genres" name="genres" value="<%= anime.genres ? anime.genres.join(', ') : '' %>">
+        </div>
+
+        <hr style="margin: 20px 0; border-color: var(--admin-border);">
+        <h2>Karakter</h2>
+        
+        <div id="character-list">
+            <% if (anime.characters && anime.characters.length > 0) { %>
+                <% anime.characters.forEach((char, index) => { %>
+                     <div class="character-entry">
+                        <h4 style="margin-top: 0;">Karakter #<%= index + 1 %></h4>
+                        <div>
+                            <label>Nama Karakter:</label>
+                            <input type="text" name="characters[<%= index %>][name]" value="<%= char.name || '' %>">
+                        </div>
+                        <div>
+                             <label>Peran (Role):</label>
+                            <input type="text" name="characters[<%= index %>][role]" value="<%= char.role || '' %>" placeholder="Contoh: Main, Supporting">
+                        </div>
+                        <div>
+                             <label>URL Gambar:</label>
+                            <input type="text" name="characters[<%= index %>][imageUrl]" value="<%= char.imageUrl || '' %>" oninput="previewImage(this)">
+                        </div>
+                        
+                        <img class="character-preview-img"
+                             src="<%= char.imageUrl || '' %>" 
+                             alt="Preview" 
+                             style="<%= char.imageUrl ? 'display: block;' : 'display: none;' %>"
+                        >
+                        
+                        <button type="button" onclick="removeCharacter(this)" class="btn btn-danger" style="margin-top: 10px;">
+                             Hapus Karakter Ini
+                        </button>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                 <p id="no-characters-msg">Belum ada data karakter. Klik tombol di bawah untuk menambahkannya.</p>
+            <% } %>
+        </div>
+
+        <button type="button" id="add-character-btn" class="btn btn-primary" style="font-size: 0.9em; margin-top: 10px; margin-bottom: 20px;">
+            + Tambah Karakter Baru
+        </button>
+
+        <div id="character-template" style="display: none;">
+            <div class="character-entry">
+                <h4 style="margin-top: 0;">Karakter Baru</h4>
+                <div>
+                     <label>Nama Karakter:</label>
+                    <input type="text" name="characters[__INDEX__][name]" value="">
+                </div>
+                <div>
+                    <label>Peran (Role):</label>
+                    <input type="text" name="characters[__INDEX__][role]" value="" placeholder="Contoh: Main, Supporting">
+                </div>
+                <div>
+                    <label>URL Gambar:</label>
+                    <input type="text" name="characters[__INDEX__][imageUrl]" value="" oninput="previewImage(this)">
+                </div>
+                 <img class="character-preview-img" src="" alt="Preview" style="display: none;">
+                
+                <button type="button" onclick="removeCharacter(this)" class="btn btn-danger" style="margin-top: 10px;">
+                    Hapus Karakter Ini
+                </button>
+             </div>
+        </div>
+        
+        <script>
+            let charIndex = <%= (anime.characters && anime.characters.length > 0) ? anime.characters.length : 0 %>;
+            document.getElementById('add-character-btn').addEventListener('click', function() {
+                const template = document.getElementById('character-template').innerHTML;
+                const newEntryWrapper = document.createElement('div');
+                newEntryWrapper.innerHTML = template.replace(/__INDEX__/g, charIndex);
+                const newEntry = newEntryWrapper.firstElementChild;
+                document.getElementById('character-list').appendChild(newEntry);
+                const noCharMsg = document.getElementById('no-characters-msg');
+                if (noCharMsg) {
+                    noCharMsg.style.display = 'none';
+                }
+                charIndex++; 
+            });
+            
+            function removeCharacter(button) {
+                button.closest('.character-entry').remove();
+                if (document.querySelectorAll('#character-list .character-entry').length === 0) {
+                     const noCharMsg = document.getElementById('no-characters-msg');
+                     if (noCharMsg) {
+                        noCharMsg.style.display = 'block';
+                     }
+                }
+            }
+            function previewImage(input) {
+                const imgElement = input.parentElement.nextElementSibling;
+                if (input.value) {
+                    imgElement.src = input.value;
+                    imgElement.style.display = 'block';
+                } else {
+                    imgElement.src = '';
+                    imgElement.style.display = 'none';
+                }
+            }
+            const mainForm = document.getElementById('mainAnimeForm');
+            mainForm.addEventListener('submit', function(e) {
+                const characterEntries = document.querySelectorAll('#character-list .character-entry');
+                characterEntries.forEach((entry, newIndex) => {
+                    entry.querySelectorAll('input').forEach(input => {
+                        input.name = input.name.replace(/\[(\d+|__INDEX__)\]/, '[' + newIndex + ']');
+                    });
+                });
+             });
+        </script>
+        
+        <button type="submit" class="btn btn-success" style="margin-top: 20px;">Update Detail Anime</button>
+    </form>
+
+
+    <hr style="margin: 40px 0; border-color: var(--admin-border);">
+
+    <%# --- FORM KEDUA: TAMBAH EPISODE --- %>
+    <h2>Tambah Episode Baru</h2>
+    <form class="admin-form" action="/admin/anime/<%= encodeURIComponent(anime.pageSlug) %>/episodes/add" method="POST">
+        <div>
+            <label for="episodeTitle" class="required-field">Judul Episode:</label>
+            <input type="text" id="episodeTitle" name="episodeTitle" required>
+        </div>
+        <div>
+            <label for="episodeSlug" class="required-field">Slug Episode (URL unik):</label>
+            <input type="text" id="episodeSlug" name="episodeSlug" placeholder="otomatis terisi dari judul" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" title="Hanya huruf kecil, angka, dan tanda hubung (-)">
+            <small>Harus unik di seluruh episode.</small>
+        </div>
+        <div>
+            <label for="episodeDate">Tanggal Rilis:</label>
+            <input type="text" id="episodeDate" name="episodeDate" placeholder="Contoh: Oktober 21, 2025" value="<%= new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) %>">
+        </div>
+
+        <button type="submit" class="btn btn-secondary">Tambah Episode Ini</button>
+    </form>
+    
+    <script>
+    (function() {
+        const titleInput = document.getElementById('episodeTitle');
+        const slugInput = document.getElementById('episodeSlug');
+        if (!titleInput || !slugInput) {
+            console.warn("Input Judul/Slug Episode tidak ditemukan.");
+            return; 
+        }
+        let userHasManuallyEditedSlug = false;
+        function slugifyEpisode(text) {
+            if (!text) return '';
+            return text.toString().toLowerCase().trim()
+                .replace(/\s+/g, '-')       
+                .replace(/[^\w\-]+/g, '')   
+                .replace(/\-\-+/g, '-')     
+                .replace(/^-+/, '')         
+                .replace(/-+$/, '');
+        }
+        titleInput.addEventListener('input', function() {
+            if (!userHasManuallyEditedSlug) {
+                slugInput.value = slugifyEpisode(this.value);
+            }
+        });
+        slugInput.addEventListener('input', function() {
+            if (this.value === '') {
+                userHasManuallyEditedSlug = false;
+            } else {
+                userHasManuallyEditedSlug = true;
+            }
+        });
+    })(); 
+    </script>
+
+    <hr style="margin: 40px 0; border-color: var(--admin-border);">
+
+    <h2>Daftar Episode Saat Ini</h2>
+    <% if (anime.episodes && anime.episodes.length > 0) { %>
+        <ul style="list-style: none; padding: 15px; max-height: 300px; overflow-y: auto; background: var(--admin-bg-light); border-radius: 5px;">
+            <% anime.episodes.slice().reverse().forEach(ep => { %>
+                <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--admin-border);">
+                    <span style="max-width: 60%;">
+                        <strong><%= ep.title %></strong><br>
+                        <small style="color: var(--admin-text-muted);">Slug: <%= ep.url %></small>
+                    </span>
+                    <span style="flex-shrink: 0;">
+                        <a href="/admin/episode/<%= encodeURIComponent(ep.url) %>/edit" target="_blank" style="margin-right: 10px;">Edit Detail</a>
+                        
+                        <form action="/admin/episode/<%= encodeURIComponent(ep.url) %>/delete" method="POST" style="display: inline-block;" 
+                              onsubmit="return confirm('Yakin ingin menghapus episode ini? Ini akan menghapus dari cache DAN list anime.');">
+                            <button type="submit" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.9em; margin-top: 0;">
+                                Delete
+                            </button>
+                        </form>
+                    </span>
+                </li>
+            <% }) %>
+        </ul>
+    <% } else { %>
+        <p>Belum ada episode untuk anime ini.</p>
+    <% } %>
+
+
+<% } else { %>
+    <p>Anime tidak ditemukan.</p>
+<% } %>
+
+<%- include('../admin/partials/footer', { page: page }) %>

@@ -1,0 +1,55 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+
+<h1>Admin - Daftar Episode</h1>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Thumbnail</th>
+            <th>Judul Episode</th>
+            <th>Slug Episode</th>
+            <th>Anime Induk</th>
+            <th>Terakhir Update</th>
+            <th>Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% episodes.forEach(ep => { %>
+            <tr>
+                <td><img src="<%= ep.thumbnailUrl || '/images/default_thumb.jpg' %>" alt="" loading="lazy"></td>
+                <td><%= ep.title %></td>
+                <td><%= ep.episodeSlug %></td>
+                <td>
+                    <% if (ep.animeSlug) { %>
+                        <a href="/anime/<%= encodeURIComponent(ep.animeSlug) %>" target="_blank"><%= ep.animeTitle %></a>
+                    <% } else { %>
+                        <%= ep.animeTitle || 'N/A' %>
+                    <% } %>
+                </td>
+                <td><%= new Date(ep.updatedAt).toLocaleDateString('id-ID') %></td>
+                <td>
+                    <a href="/admin/episode/<%= encodeURIComponent(ep.episodeSlug) %>/edit">Edit</a>
+                     |
+                    <a href="/nonton/<%= encodeURIComponent(ep.episodeSlug) %>" target="_blank">Lihat</a>
+                </td>
+            </tr>
+        <% }) %>
+    </tbody>
+</table>
+
+<%# --- Paginasi --- %>
+<% if (totalPages > 1) { %>
+    <div class="pagination">
+      <% if (currentPage > 1) { %> <a href="<%= baseUrl %>?page=<%= currentPage - 1 %>">« Prev</a> <% } else { %> <span class="disabled">« Prev</span> <% } %>
+      <% 
+      const maxP = 5; let sP = Math.max(1, currentPage - Math.floor(maxP / 2));
+      let eP = Math.min(totalPages, sP + maxP - 1); if(eP-sP+1<maxP) sP=Math.max(1,eP-maxP+1);
+      %>
+      <% if (sP > 1) { %> <a href="<%= baseUrl %>?page=1">1</a> <% if (sP > 2) { %> <span class="disabled">...</span> <% } %> <% } %>
+      <% for (let i = sP; i <= eP; i++) { %> <% if (i === currentPage) { %> <span class="current"><%= i %></span> <% } else { %> <a href="<%= baseUrl %>?page=<%= i %>"><%= i %></a> <% } %> <% } %>
+      <% if (eP < totalPages) { %> <% if (eP < totalPages - 1) { %> <span class="disabled">...</span> <% } %> <a href="<%= baseUrl %>?page=<%= totalPages %>"><%= totalPages %></a> <% } %>
+      <% if (currentPage < totalPages) { %> <a href="<%= baseUrl %>?page=<%= currentPage + 1 %>">Next »</a> <% } else { %> <span class="disabled">Next »</span> <% } %>
+    </div>
+<% } %>
+
+<%- include('../admin/partials/footer', { page: page }) %>

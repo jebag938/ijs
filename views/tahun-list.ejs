@@ -1,0 +1,18 @@
+<%- include('partials/header', { /* data header */ }) %>
+
+<h1>Daftar Tahun Rilis</h1>
+
+<% if (!years || years.length === 0) { %>
+  <p>Belum ada tahun rilis yang tersedia.</p>
+<% } else { %>
+  <ul class="genre-list"> <%# Menggunakan style yang sama dengan genre-list %>
+    <% years.forEach(year => { %>
+      <li>
+        <%# Link tahun tidak perlu slugify karena sudah bersih (cth: "2024") %>
+        <a href="/tahun/<%= year %>"><%= year %></a>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('partials/footer', { page: page }) %>

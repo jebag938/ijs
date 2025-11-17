@@ -1,0 +1,48 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+
+<h1>Backup & Restore Database</h1>
+
+<div class="admin-form">
+    <h2>Ekspor (Backup) Database</h2>
+    <p style="color: #ccc; font-size: 0.9em;">
+        Klik tombol ini untuk mengunduh file `backup.json` yang berisi semua koleksi data (Anime, Episode, Bookmark).
+        <br>Simpan file ini di tempat yang aman.
+    </p>
+    <a href="/admin/backup/export" class="btn btn-primary">Mulai Proses Ekspor</a>
+</div>
+
+<hr style="margin: 40px 0; border-color: var(--admin-border);">
+
+<div class="admin-form">
+    <h2>Impor (Restore) Database</h2>
+    <p style="color: #ccc; font-size: 0.9em;">
+        Pilih file `backup.json` yang sebelumnya Anda ekspor untuk memulihkan database.
+    </p>
+
+    <div class="warning-box">
+        <strong>PERINGATAN BESAR:</strong>
+        <br>Proses ini akan **MENGHAPUS TOTAL** semua data yang ada di database Anda saat ini (Anime, Episode, Bookmark) dan menggantinya dengan data dari file backup.
+        <br><strong>AKSI INI TIDAK BISA DIURUNGKAN.</strong>
+    </div>
+
+    <form id="importForm" action="/admin/backup/import" method="POST" enctype="multipart/form-data" style="margin-top: 20px;">
+        <div>
+            <label for="backupFile">Upload file `backup.json`:</label>
+            <input type="file" id="backupFile" name="backupFile" accept="application/json" required>
+        </div>
+        
+        <button type="submit" class="btn btn-danger">Mulai Proses Impor (Restore)</button>
+    </form>
+</div>
+
+<script>
+    // Tambahkan konfirmasi ganda untuk aksi berbahaya
+    document.getElementById('importForm').addEventListener('submit', function(e) {
+        const confirmation = confirm("PERINGATAN:\nAnda yakin ingin MENGHAPUS SEMUA data saat ini dan menimpanya dengan file backup?\n\nAksi ini tidak dapat dibatalkan.");
+        if (!confirmation) {
+            e.preventDefault(); // Batalkan submit form
+        }
+    });
+</script>
+
+<%- include('../admin/partials/footer', { page: page }) %>

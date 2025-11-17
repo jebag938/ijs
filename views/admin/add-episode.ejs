@@ -1,0 +1,129 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+
+<h1>Tambah Episode Manual</h1>
+<p>Halaman ini untuk menambah satu episode ke anime yang sudah ada.</p>
+
+<form class="admin-form" id="addEpisodeForm" action="" method="POST">
+    
+    <div>
+        <label for="animeSearchInput">Cari Anime Induk:</label>
+        <input type="text" id="animeSearchInput" placeholder="Ketik untuk mencari (cth: Harem Camp)..." style="margin-bottom: 5px;">
+    </div>
+
+    <div>
+        <label for="parentAnimeSlug" class="required-field">Pilih Anime Induk:</label>
+        <select id="parentAnimeSlug" name="parentAnimeSlug" required>
+            <option value="">-- Pilih Anime --</option>
+            <% animes.forEach(anime => { %>
+                <option value="<%= anime.pageSlug %>"><%= anime.title %></option>
+            <% }) %>
+        </select>
+        <small>Daftar ini akan otomatis terfilter saat Anda mengetik di kotak pencarian di atas.</small>
+    </div>
+    
+    <hr style="margin: 20px 0; border-color: var(--admin-border);">
+
+    <div>
+        <label for="episodeTitle" class="required-field">Judul Episode:</label>
+        <input type="text" id="episodeTitle" name="episodeTitle" required>
+    </div>
+    <div>
+        <label for="episodeSlug" class="required-field">Slug Episode (URL unik):</label>
+        <input type="text" id="episodeSlug" name="episodeSlug" placeholder="otomatis terisi dari judul" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" title="Hanya huruf kecil, angka, dan tanda hubung (-)">
+        <small>Harus unik di seluruh episode.</small>
+    </div>
+    <div>
+        <label for="episodeDate">Tanggal Rilis:</label>
+        <input type="text" id="episodeDate" name="episodeDate" value="<%= new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) %>">
+    </div>
+
+    <button type="submit" class="btn btn-success" style="margin-top: 10px;">Tambah Episode Ini</button>
+</form>
+
+<script>
+    // Skrip untuk auto-slug (copy-paste dari edit-anime.ejs)
+    (function() {
+        const titleInput = document.getElementById('episodeTitle');
+        const slugInput = document.getElementById('episodeSlug');
+        if (!titleInput || !slugInput) return;
+        let userHasManuallyEditedSlug = false;
+        function slugifyEpisode(text) {
+            if (!text) return '';
+            return text.toString().toLowerCase().trim()
+                .replace(/\s+/g, '-')       
+                .replace(/[^\w\-]+/g, '')   
+                .replace(/\-\-+/g, '-')     
+                .replace(/^-+/, '')         
+                .replace(/-+$/, '');
+        }
+        titleInput.addEventListener('input', function() {
+            if (!userHasManuallyEditedSlug) {
+                slugInput.value = slugifyEpisode(this.value);
+            }
+        });
+        slugInput.addEventListener('input', function() {
+            userHasManuallyEditedSlug = (this.value !== '');
+        });
+    })();
+
+    // Skrip untuk form action dinamis (dari sebelumnya)
+    (function() {
+        const form = document.getElementById('addEpisodeForm');
+        const select = document.getElementById('parentAnimeSlug');
+        
+        if (!form || !select) return;
+
+        function updateFormAction() {
+            const selectedSlug = select.value;
+            if (selectedSlug) {
+                const encodedSlug = encodeURIComponent(selectedSlug);
+                form.action = `/admin/anime/${encodedSlug}/episodes/add`;
+            } else {
+                form.action = "";
+            }
+        }
+        updateFormAction();
+        select.addEventListener('change', updateFormAction);
+        
+        form.addEventListener('submit', function(e) {
+            if (!form.action) {
+                e.preventDefault();
+                alert("Harap pilih anime induk terlebih dahulu!");
+            }
+        });
+    })();
+
+    // --- SKRIP BARU UNTUK SEARCH DROPDOWN ---
+    (function() {
+        const searchInput = document.getElementById('animeSearchInput');
+        const selectElement = document.getElementById('parentAnimeSlug');
+        
+        if (!searchInput || !selectElement) return;
+
+        // Dapatkan semua options *kecuali* yang pertama ("-- Pilih --")
+        // Kita gunakan `querySelectorAll` untuk mendapatkan array statis
+        const allOptions = Array.from(selectElement.querySelectorAll('option:not([value=""])'));
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+
+            // Sembunyikan atau tampilkan setiap option berdasarkan pencarian
+            allOptions.forEach(option => {
+                const optionText = option.text.toLowerCase();
+                if (optionText.includes(searchTerm)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // PENTING: Reset pilihan jika pilihan saat ini tersembunyi
+            if (selectElement.value && selectElement.options[selectElement.selectedIndex].style.display === 'none') {
+                selectElement.value = ""; // Reset ke "-- Pilih Anime --"
+                selectElement.dispatchEvent(new Event('change')); // Memicu update form action
+            }
+        });
+    })();
+</script>
+
+<%- include('../admin/partials/footer', { page: page }) %>

@@ -1,0 +1,49 @@
+<%# File: views/jadwal.ejs %>
+
+<%- include('partials/header', { /* data header */ }) %>
+
+<%# Kita gunakan layout 2 kolom yang sudah ada %>
+<div class="container-halaman">
+
+  <%# --- KOLOM KIRI (Konten Utama) --- %>
+  <main class="konten-utama">
+    <h1>Jadwal Rilis Hentai</h1>
+    <p style="text-align: center; color: var(--text-muted); padding: 10px 0;">Daftar rilis terbaru dan yang akan datang dari Jikan (MyAnimeList).</p>
+  </br>
+    <%# Container untuk hasil API %>
+    <div id="jadwal-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+      <p>Memuat jadwal dari Jikan...</p>
+      <%# Anda bisa tambahkan CSS spinner di sini jika mau %>
+    </div>
+    
+    <%# Grid ini akan diisi oleh JavaScript %>
+    <div class="grid" id="jadwal-grid">
+      <%# Hasil akan dimasukkan di sini %>
+    </div>
+  </main>
+
+  <%# --- KOLOM KANAN (Sidebar) --- %>
+  <aside class="sidebar-kanan">
+    
+    <%# Widget Populer (Akan dimuat oleh skrip di footer) %>
+    <div class="popular-widget widget">
+      <h2>Populer</h2>
+      <div class="ts-wpop-series-gen">
+        <ul class="ts-wpop-nav-tabs">
+          <li class="active"><span class="ts-wpop-tab" data-range="weekly">Mingguan</span></li>
+          <li><span class="ts-wpop-tab" data-range="monthly">Bulanan</span></li>
+          <li><span class="ts-wpop-tab" data-range="alltime">Semua</span></li>
+        </ul>
+      </div>
+      <div id="wpop-items">
+        <div class="serieslist pop wpop loading-popular">
+          <p>Memuat data populer...</p>
+        </div>
+      </div>
+    </div>
+    
+  </aside>
+
+</div>
+
+<%- include('partials/footer', { page: page }) %>

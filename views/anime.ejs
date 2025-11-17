@@ -1,0 +1,195 @@
+<%- include('partials/header', { /* data header */ }) %>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TVSeries",
+  "name": "<%= data.title %>",
+  "alternateName": "<%= data.alternativeTitle || '' %>",
+  "description": <%- JSON.stringify(data.synopsis.substring(0, 5000)) %>,
+  "image": "<%= pageImage %>",
+  "url": "<%= pageUrl %>",
+  "genre": <%- JSON.stringify(data.genres || []) %>,
+  
+  <%# Coba ambil tahun rilis %>
+  <% if (data.info && data.info.Released) { %>
+    "datePublished": "<%= data.info.Released.split(' ')[0] %>", <%# Ambil tahun saja jika formatnya "YYYY" %>
+  <% } %>
+
+  <%# Tambahkan info Studio sebagai kreator %>
+  <% if (data.info && data.info.Studio) { %>
+    "creator": {
+      "@type": "Organization",
+      "name": "<%= data.info.Studio %>"
+    },
+  <% } %>
+
+  <%# Tambahkan episode (jika ada) %>
+  "episode": [
+    <% data.episodes.forEach((ep, index) => { %>
+      {
+        "@type": "TVEpisode",
+        "url": "<%= SITE_URL %>/nonton/<%= ep.url %>", <%# ep.url di sini adalah slug, server.js harus mengirim SITE_URL %>
+        "name": "<%= ep.title %>",
+        "episodeNumber": "<%= (ep.title.match(/(\\d+)/) || [null, index + 1])[1] %>"
+      }<%= index < data.episodes.length - 1 ? ',' : '' %>
+    <% }) %>
+  ]
+}
+</script>
+
+
+
+<% if (data) { %> <%# Pastikan data anime ada %>
+  <h1><%= data.title %></h1>
+
+  <div class="anime-container">
+    <div class="anime-thumb">
+      <img src="<%= data.imageUrl || '/images/default.jpg' %>" alt="Poster <%= data.title %>">
+    </div>
+    <div class="anime-info"> <%# Menggabungkan deskripsi dan sinopsis %>
+      <div class="desc">
+        Streaming <b><%= data.title %></b> dengan subtitle Indonesia tersedia dalam berbagai resolusi,
+        mulai dari 360p hingga 1080p. <b><%= data.title %></b> selalu diupdate dengan episode terbaru hanya di
+        <b><%= siteName %></b>. Temukan juga anime populer lainnya untuk ditonton secara gratis.
+      </div>
+      <p class="synopsis-text">
+        <%= data.synopsis %>
+      </p>
+    </div>
+  </div>
+
+  <%# Tombol Bookmark %>
+  <button class="bookmark-btn" id="bookmarkBtn" data-animeid="<%= data._id %>">
+    Bookmark
+  </button>
+
+<%# View Cont %>
+  <div class="view-count-display">
+      <i class="fa fa-eye"></i> 
+      <%# Gunakan formatCompactNumber untuk menghasilkan "1.5K", "2M", dll. %>
+      <span><%= formatCompactNumber(data.viewCount) %> Dilihat</span>
+    </div>
+
+  <%# Tombol Share Dinamis %>
+  <div class='socialts'>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=<%= encodeURIComponent(pageUrl) %>&t=<%= encodeURIComponent(data.title) %>"
+      target="_blank" class="fb" aria-label="Share on Facebook"> <i class="fa-facebook-f"></i> <span>Facebook</span> </a>
+    <a href="https://www.twitter.com/intent/tweet?url=<%= encodeURIComponent(pageUrl) %>&text=<%= encodeURIComponent(data.title) %>"
+      target="_blank" class="twt" aria-label="Share on Twitter"> <i class="fa-twitter"></i> <span>Twitter</span> </a>
+    <a href="whatsapp://send?text=<%= encodeURIComponent(data.title) %> <%= encodeURIComponent(pageUrl) %>" target="_blank"
+      class="wa" aria-label="Share on WhatsApp"> <i class="fa-whatsapp"></i> <span>WhatsApp</span> </a>
+    <a href="https://pinterest.com/pin/create/button/?url=<%= encodeURIComponent(pageUrl) %>&media=<%= encodeURIComponent(pageImage) %>&description=<%= encodeURIComponent(data.title) %>"
+      target="_blank" class="pntrs" aria-label="Share on Pinterest"> <i class="fa-pinterest-p"></i> <span>Pinterest</span> </a>
+    <a href="https://t.me/share/url?url=<%= encodeURIComponent(pageUrl) %>&text=<%= encodeURIComponent(data.title) %>" target="_blank"
+      class="tlg" aria-label="Share on Telegram"> <i class="fa-telegram-plane"></i> <span>Telegram</span> </a>
+  </div>
+
+
+  <%# --- PERBAIKAN STRUKTUR INFO DETAIL --- %>
+  <div class="info">
+    <h2>Informasi Detail</h2>
+    <ul> <%# Buka UL satu kali %>
+
+      <%# Tampilkan Judul Alternatif jika ada %>
+      <% if (data.alternativeTitle) { %>
+        <li><strong>Judul Alternatif:</strong> <%= data.alternativeTitle %></li>
+      <% } %>
+
+      <%# Tampilkan info lain (kecuali yang difilter) %>
+      <% if(data.info) {
+           Object.entries(data.info).forEach(([key, value]) => {
+             // Filter field yang akan ditampilkan terpisah
+             if (key !== 'Status' && key !== 'Type' && key !== 'Studio') { %>
+               <li><strong><%= key %>:</strong> <%= value %></li>
+             <% }
+           });
+         } %>
+
+      <%# Tampilkan Studio (jika ada) sebagai link %>
+      <% if (data.info && data.info.Studio) { %>
+        <li><strong>Studio:</strong> <a href="/studio/<%= slugify(data.info.Studio) %>"><%= data.info.Studio %></a></li>
+      <% } %>
+
+      <%# Tampilkan Type (jika ada) sebagai link %>
+      <% if (data.info && data.info.Type) { %>
+        <li><strong>Type:</strong> <a href="/type/<%= slugify(data.info.Type) %>"><%= data.info.Type %></a></li>
+      <% } %>
+
+      <%# Tampilkan Status (jika ada) sebagai link %>
+      <% if (data.info && data.info.Status) { %>
+        <li><strong>Status:</strong> <a href="/status/<%= slugify(data.info.Status) %>"><%= data.info.Status %></a></li>
+      <% } %>
+
+      <%# Tampilkan Genres (jika ada) sebagai link %>
+      <% if (data.genres && data.genres.length > 0) { %>
+        <li>
+          <strong>Genres:</strong>
+          <% data.genres.forEach((genre, index) => { %>
+            <a href="/genre/<%= slugify(genre) %>"><%= genre %></a><%= index < data.genres.length - 1 ? ', ' : '' %>
+          <% }) %>
+        </li>
+      <% } %>
+
+    </ul> <%# Tutup UL satu kali %>
+  </div>
+  <%# --- AKHIR PERBAIKAN --- %>
+
+
+  <%# Characters Section %>
+  <% if (data.characters && data.characters.length > 0) { %>
+    <div class="characters-section">
+      <h2>Karakter</h2>
+      <div class="grid">
+        <% data.characters.forEach(char => { %>
+          <div class="char-card">
+            <img src="<%= char.imageUrl || '/images/default-char.png' %>" alt="<%= char.name %>" loading="lazy">
+            <div class="char-name"><%= char.name %></div>
+            <% if(char.role) { %><div class="char-role"><%= char.role %></div><% } %>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
+
+
+  <%# Episodes Section %>
+  <% if (data.episodes && data.episodes.length > 0) { %>
+    <div class="episodes">
+      <h2>Daftar Episode</h2>
+      <ul>
+        <% data.episodes.forEach(ep => { %>
+          <li>
+            <a class="ep-title" href="/nonton/<%= ep.url %>"> <%# ep.url sudah di-encode oleh server %>
+              <%= ep.title %>
+            </a>
+            <% if(ep.date) { %><span class="ep-date"><%= ep.date %></span><% } %>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  <% } %>
+
+  <%# Recommendations Section %>
+  <% if (recommendations && recommendations.length > 0) { %>
+    <div class="recommendations">
+      <h2>Rekomendasi</h2>
+      <div class="grid">
+        <% recommendations.forEach(anime => { %>
+          <div class="card">
+            <a href="/anime/<%= anime.pageSlug %>"> <%# slug sudah di-encode oleh server %>
+              <img src="<%= anime.imageUrl || '/images/default.jpg' %>" alt="<%= anime.title %>" loading="lazy">
+              <h3><%= anime.title %></h3>
+            </a>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
+
+<% } else { %>
+  <h1>Anime Tidak Ditemukan</h1>
+  <p>Maaf, data untuk anime ini tidak dapat dimuat.</p>
+<% } %>
+
+<%- include('partials/footer', { page: page }) %>

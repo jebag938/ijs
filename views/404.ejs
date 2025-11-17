@@ -1,0 +1,16 @@
+<%- include('partials/header', {
+    page: page,
+    pageTitle: pageTitle,
+    pageDescription: pageDescription,
+    pageImage: pageImage,
+    pageUrl: pageUrl,
+    query: query
+  }) %>
+  
+  <div class="not-found-container">
+    <h1>404</h1>
+    <p>Oops! Halaman yang Anda cari tidak dapat ditemukan.</p>
+    <a href="/">Kembali ke Halaman Utama</a>
+  </div>
+  
+  <%- include('partials/footer', { page: page }) %>

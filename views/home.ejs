@@ -1,0 +1,70 @@
+<%- include('partials/header', { /* data header */ }) %>
+
+<%# --- Slider --- %>
+<% if (sliderAnimes && sliderAnimes.length > 0) { %>
+  <h2>Terbaru</h2>
+  <div class="slider-container">
+    <% sliderAnimes.forEach(anime => { %>
+      <div class="slide">
+        <a href="/anime/<%= anime.pageSlug %>">
+          <img src="<%= anime.imageUrl || '/images/default.jpg' %>" alt="<%= anime.title %>" loading="lazy">
+          <div class="slide-title"><%= anime.title %></div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<%# --- Ongoing Section --- %>
+<% if (ongoingAnimes && ongoingAnimes.length > 0) { %>
+  <h2><a href="/status/ongoing" style="color: inherit; text-decoration: none;">Ongoing</a></h2>
+  <div class="grid">
+    <% ongoingAnimes.forEach(anime => { %>
+      <div class="card">
+        <a href="/anime/<%= anime.pageSlug %>">
+          <img src="<%= anime.imageUrl || '/images/default.jpg' %>" alt="<%= anime.title %>" loading="lazy">
+          <h3><%= anime.title %></h3>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+<% } else { %>
+   <h2><a href="/status/ongoing" style="color: inherit; text-decoration: none;">Ongoing</a></h2>
+   <p>Tidak ada anime ongoing saat ini.</p>
+<% } %>
+
+<%# --- Completed Section --- %>
+<% if (completedAnimes && completedAnimes.length > 0) { %>
+  <h2 style="margin-top: 40px;"><a href="/status/completed" style="color: inherit; text-decoration: none;">Completed</a></h2>
+  <div class="grid">
+    <% completedAnimes.forEach(anime => { %>
+      <div class="card">
+        <a href="/anime/<%= anime.pageSlug %>">
+          <img src="<%= anime.imageUrl || '/images/default.jpg' %>" alt="<%= anime.title %>" loading="lazy">
+          <h3><%= anime.title %></h3>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+<% } else { %>
+    <h2 style="margin-top: 40px;"><a href="/status/completed" style="color: inherit; text-decoration: none;">Completed</a></h2>
+    <p>Tidak ada anime completed saat ini.</p>
+<% } %>
+
+<div class="popular-widget">
+  <h2>Populer</h2>
+  <div class="ts-wpop-series-gen">
+    <ul class="ts-wpop-nav-tabs">
+      <li class="active"><span class="ts-wpop-tab" data-range="weekly">Mingguan</span></li>
+      <li><span class="ts-wpop-tab" data-range="monthly">Bulanan</span></li>
+      <li><span class="ts-wpop-tab" data-range="alltime">Semua</span></li>
+    </ul>
+  </div>
+  <div id="wpop-items">
+    <div class="serieslist pop wpop loading-popular">
+      <p>Memuat data populer...</p>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer', { page: page }) %>

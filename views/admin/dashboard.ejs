@@ -1,0 +1,33 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+
+<h1>Admin Dashboard</h1>
+<p>Selamat datang di area admin, <%= process.env.ADMIN_USERNAME || 'Admin' %>.</p>
+
+<div class="stat-grid">
+    <div class="stat-card stat-anime">
+        <h3>Total Anime</h3>
+        <p><%= totalAnime %></p>
+    </div>
+    <div class="stat-card stat-episodes">
+        <h3>Total Episode</h3>
+        <p><%= totalEpisodes %></p>
+    </div>
+</div>
+<h2>Navigasi Cepat</h2>
+<div class="dashboard-grid">
+    <a href="/admin/anime/add" class="card">
+        + Tambah Anime Baru
+    </a>
+    <a href="/admin/anime" class="card">
+        Kelola Anime
+    </a>
+    <a href="/admin/episodes" class="card">
+        Kelola Episode
+    </a>
+    <a href="/admin/backup" class="card card-special">
+        Backup / Restore Database
+    </a>
+</div>
+
+<%# PERBAIKAN TYPO: Path ke footer seharusnya '../partials/footer' %>
+<%- include('../admin/partials/footer', { page: page }) %>

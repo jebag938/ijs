@@ -1,0 +1,55 @@
+<%- include('partials/header', { /* data header */ }) %>
+
+<h1>Episode Terbaru</h1>
+
+<% if (!episodes || episodes.length === 0) { %>
+  <p>Tidak ada episode terbaru yang ditemukan.</p>
+<% } else { %>
+  <div class="episode-list-container">
+    <% episodes.forEach(episode => { %>
+      <div class="episode-list-item">
+        <%# Link ke halaman nonton menggunakan episodeSlug (sudah di-encode oleh server) %>
+        <a href="/nonton/<%= episode.episodeSlug %>">
+          <img src="<%= episode.animeImageUrl || '/images/default.jpg' %>" alt="<%= episode.animeTitle || 'Anime Poster' %>" loading="lazy">
+        </a>
+        <div class="details">
+          <h3>
+            <%# Link judul episode ke halaman nonton %>
+            <a href="/nonton/<%= episode.episodeSlug %>"><%= episode.title || episode.episodeSlug %></a>
+          </h3>
+          <%# Tampilkan judul anime induk (jika ada) sebagai link %>
+          <% if (episode.animeSlug) { %>
+            <span class="anime-title">
+              Anime: <a href="/anime/<%= episode.animeSlug %>"><%= episode.animeTitle %></a> <%# animeSlug sudah di-encode oleh server %>
+            </span>
+          <% } else { %>
+            <%# Tampilkan judul anime tanpa link jika slug tidak ada %>
+            <span class="anime-title">Anime: <%= episode.animeTitle || 'Unknown' %></span>
+          <% } %>
+          <span class="date">
+            <%# Format tanggal penambahan episode %>
+            Added: <%= new Date(episode.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) %>
+          </span>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+
+  <%# --- Paginasi --- %>
+  <% if (totalPages > 1) { %>
+    <div class="pagination">
+      <%# Tombol Prev %>
+      <% if (currentPage > 1) { %> <a href="<%= baseUrl %>?page=<%= currentPage - 1 %>">« Prev</a> <% } else { %> <span class="disabled">« Prev</span> <% } %>
+      <%# Nomor Halaman %>
+      <% const maxP = 5; let sP = Math.max(1, currentPage - Math.floor(maxP / 2)); let eP = Math.min(totalPages, sP + maxP - 1); if(eP-sP+1<maxP) sP=Math.max(1,eP-maxP+1); %>
+      <% if (sP > 1) { %> <a href="<%= baseUrl %>?page=1">1</a> <% if (sP > 2) { %> <span class="disabled">...</span> <% } %> <% } %>
+      <% for (let i = sP; i <= eP; i++) { %> <% if (i === currentPage) { %> <span class="current"><%= i %></span> <% } else { %> <a href="<%= baseUrl %>?page=<%= i %>"><%= i %></a> <% } %> <% } %>
+      <% if (eP < totalPages) { %> <% if (eP < totalPages - 1) { %> <span class="disabled">...</span> <% } %> <a href="<%= baseUrl %>?page=<%= totalPages %>"><%= totalPages %></a> <% } %>
+      <%# Tombol Next %>
+      <% if (currentPage < totalPages) { %> <a href="<%= baseUrl %>?page=<%= currentPage + 1 %>">Next »</a> <% } else { %> <span class="disabled">Next »</span> <% } %>
+    </div>
+  <% } %>
+
+<% } %>
+
+<%- include('partials/footer', { page: page }) %>

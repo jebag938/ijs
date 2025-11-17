@@ -1,0 +1,511 @@
+</main> <footer style="text-align: center; padding: 20px 0; margin-top: 30px; border-top: 1px solid #444; color: #888; font-size: 0.9em;">
+  Copyright &copy; 2025 - <%= siteName %>
+</footer>
+
+<script type="text/javascript">
+  function applyTheme(theme) {
+    const themeToggle = document.getElementById('lightdark');
+    const icon = document.getElementById('sld');
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      if (themeToggle) themeToggle.checked = true;
+      if (icon) {
+        icon.classList.remove('fa-sun-o');
+        icon.classList.add('fa-moon-o');
+      }
+    } else {
+      if (themeToggle) themeToggle.checked = false;
+      if (icon) {
+        icon.classList.remove('fa-moon-o');
+        icon.classList.add('fa-sun-o');
+      }
+    }
+  }
+  // Jalankan segera untuk menghindari FOUC (Flash of Unstyled Content)
+  const savedThemeOnLoad = localStorage.getItem('theme') || 'light'; // Tentukan default 'light'
+  applyTheme(savedThemeOnLoad);
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Terapkan lagi jika tema default dari OS berbeda (opsional)
+    // const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    // applyTheme(savedTheme);
+
+    const toggle = document.getElementById('lightdark');
+    if (toggle) {
+      toggle.addEventListener('change', function () {
+        const newTheme = this.checked ? 'dark' : 'light';
+        applyTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+      });
+    }
+  });
+</script>
+
+
+<%# --- Skrip Nonton --- %>
+<% if (page === 'nonton') { %>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const player = document.getElementById('videoPlayer');
+      const streamButtons = document.querySelectorAll('.stream-btn');
+      const downloadLinks = document.querySelectorAll('.download-link');
+
+      // Logika Ganti Stream
+      streamButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const encodedUrl = button.getAttribute('data-url');
+          if (player && encodedUrl) {
+            try {
+              const decodedUrl = atob(encodedUrl);
+              player.src = decodedUrl;
+            } catch (e) {
+              console.error("Gagal decode URL stream:", encodedUrl, e);
+              alert("Terjadi kesalahan saat memuat server stream.");
+            }
+          }
+          streamButtons.forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+        });
+      });
+
+      // Logika Link Download
+      downloadLinks.forEach(link => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          const encodedUrl = link.getAttribute('href');
+          if (encodedUrl) {
+            try {
+              const decodedUrl = atob(encodedUrl);
+              window.open(decodedUrl, '_blank');
+            } catch (e) {
+              console.error("Gagal decode URL download:", encodedUrl, e);
+              alert("Terjadi kesalahan saat membuka link download.");
+            }
+          }
+        });
+      });
+    }); // Akhir DOMContentLoaded (Nonton)
+  </script>
+<% } %>
+
+
+<%# --- Skrip Load More (Hanya untuk halaman list non-utama) --- %>
+<% if (page === 'list') { %>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+      const animeGrid = document.getElementById('anime-grid');
+
+      if (loadMoreBtn && animeGrid) {
+        let currentPage = parseInt(loadMoreBtn.dataset.currentpage);
+        const totalPages = parseInt(loadMoreBtn.dataset.totalpages);
+        let apiUrl = loadMoreBtn.dataset.apiurl;
+
+        loadMoreBtn.addEventListener('click', async () => {
+          currentPage++;
+          loadMoreBtn.disabled = true;
+          loadMoreBtn.textContent = 'Loading...';
+          try {
+            const separator = apiUrl.includes('?') ? '&' : '?';
+            const response = await fetch(`${apiUrl}${separator}page=${currentPage}`);
+            const newAnimes = await response.json();
+            if (newAnimes.length > 0) {
+              newAnimes.forEach(anime => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                  <a href="/anime/${anime.pageSlug}">
+                    <img src="${anime.imageUrl}" alt="${anime.title}">
+                    <h3>${anime.title}</h3>
+                  </a>
+                `;
+                animeGrid.appendChild(card);
+              });
+              loadMoreBtn.dataset.currentpage = currentPage;
+              loadMoreBtn.disabled = false;
+              loadMoreBtn.textContent = 'Load More';
+            } else {
+              loadMoreBtn.textContent = 'Selesai';
+              loadMoreBtn.disabled = true;
+            }
+            if (currentPage >= totalPages) {
+              loadMoreBtn.style.display = 'none';
+            }
+          } catch (error) {
+            console.error('Error fetching more anime:', error);
+            loadMoreBtn.textContent = 'Error. Coba lagi.';
+            loadMoreBtn.disabled = false;
+            currentPage--;
+          }
+        });
+      }
+    }); // Akhir DOMContentLoaded (List)
+  </script>
+<% } %>
+
+
+<%# --- Skrip Bookmark (Hanya untuk halaman anime detail) --- %>
+<% if (page === 'anime') { %>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const bookmarkBtn = document.getElementById('bookmarkBtn');
+      if (!bookmarkBtn) return;
+      const animeId = bookmarkBtn.dataset.animeid;
+      if (!animeId) { console.error('Anime ID not found on bookmark button.'); return; }
+
+      let userId = localStorage.getItem('nekopoiUserId');
+      if (!userId) { userId = 'user_' + Date.now() + Math.random().toString(36).substring(2); localStorage.setItem('nekopoiUserId', userId); }
+      let isBookmarked = false;
+
+      const checkStatus = async () => {
+        try {
+          const response = await fetch(`/api/bookmark-status?userId=${userId}&animeId=${animeId}`);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const result = await response.json();
+          isBookmarked = result.isBookmarked;
+          updateButton();
+        } catch (error) { console.error('Gagal cek status bookmark:', error); }
+      };
+
+      const updateButton = () => {
+        if (isBookmarked) {
+          bookmarkBtn.textContent = '✓ Bookmarked';
+          bookmarkBtn.classList.add('bookmarked');
+        } else {
+          bookmarkBtn.textContent = 'Bookmark';
+          bookmarkBtn.classList.remove('bookmarked');
+        }
+      };
+
+      bookmarkBtn.addEventListener('click', async () => {
+        if (!animeId) { alert('Error: Anime ID tidak ditemukan.'); return; }
+        bookmarkBtn.disabled = true;
+        const method = isBookmarked ? 'DELETE' : 'POST';
+        const url = '/api/bookmarks';
+        let fetchUrl = url;
+        const options = { method: method, headers: { 'Content-Type': 'application/json' } };
+
+        if (method === 'POST') {
+          options.body = JSON.stringify({ userId: userId, animeId: animeId });
+        } else {
+          fetchUrl = `/api/bookmarks?userId=${userId}&animeId=${animeId}`;
+          delete options.headers;
+        }
+
+        try {
+          const response = await fetch(fetchUrl, options);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const result = await response.json();
+          if (result.success) {
+            isBookmarked = result.isBookmarked;
+            updateButton();
+          } else {
+            alert(`Gagal ${method === 'POST' ? 'menambah' : 'menghapus'} bookmark: ${result.error || 'Unknown error'}`);
+          }
+        } catch (error) {
+          console.error(`Error saat ${method === 'POST' ? 'tambah' : 'hapus'} bookmark:`, error);
+          alert('Error: Gagal menghubungi server.');
+        } finally {
+          bookmarkBtn.disabled = false;
+        }
+      });
+
+      checkStatus(); // Panggil cek status awal
+    }); // Akhir DOMContentLoaded (Anime)
+  </script>
+<% } %>
+
+
+<%# --- Skrip Halaman Bookmarks --- %>
+<% if (page === 'bookmarks') { %>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const grid = document.getElementById('bookmark-grid');
+      const loadingMessage = document.getElementById('loading-message');
+      const clearBtn = document.getElementById('clearBookmarksBtn');
+      const userId = localStorage.getItem('nekopoiUserId');
+
+      if (!userId) {
+        if (loadingMessage) loadingMessage.textContent = 'Anda belum memiliki bookmark. Coba bookmark anime di halaman detail.';
+        if (clearBtn) clearBtn.style.display = 'none';
+        return;
+      }
+
+      if (!grid || !loadingMessage || !clearBtn) {
+        console.error("Elemen bookmark atau tombol clear tidak ditemukan.");
+        return;
+      }
+
+      const loadBookmarks = async () => {
+        loadingMessage.textContent = 'Memuat bookmark...';
+        loadingMessage.style.display = 'block';
+        grid.innerHTML = ''; // Kosongkan grid
+        grid.appendChild(loadingMessage);
+        clearBtn.style.display = 'none';
+
+        try {
+          const response = await fetch(`/api/my-bookmarks?userId=${userId}`);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const animes = await response.json();
+          console.log("Bookmarks received:", animes);
+          loadingMessage.style.display = 'none';
+
+          if (animes.length === 0) {
+            grid.innerHTML = '<p>Anda belum memiliki bookmark.</p>';
+            clearBtn.style.display = 'none';
+          } else {
+            animes.forEach(anime => {
+              if (!anime) return;
+              const card = document.createElement('div');
+              card.className = 'card';
+              const imageUrl = anime.imageUrl || '/images/default.jpg';
+              card.innerHTML = `
+                <a href="/anime/${anime.pageSlug}">
+                  <img src="${imageUrl}" alt="${anime.title || 'No Title'}">
+                  <h3>${anime.title || 'No Title'}</h3>
+                </a>
+              `;
+              grid.appendChild(card);
+            });
+            clearBtn.style.display = 'block';
+          }
+        } catch (error) {
+           console.error('Gagal memuat bookmark:', error);
+           loadingMessage.textContent = 'Gagal memuat bookmark. Coba lagi nanti.';
+        }
+      };
+
+      clearBtn.addEventListener('click', async () => {
+        if (!confirm('Apakah Anda yakin ingin menghapus semua bookmark? Aksi ini tidak bisa dibatalkan.')) {
+          return;
+        }
+        clearBtn.disabled = true;
+        clearBtn.textContent = 'Menghapus...';
+        try {
+          const response = await fetch(`/api/bookmarks/all?userId=${userId}`, { method: 'DELETE' });
+          const result = await response.json();
+          if (response.ok && result.success) {
+            alert(`Berhasil menghapus ${result.deletedCount} bookmark.`);
+            grid.innerHTML = '<p>Anda belum memiliki bookmark.</p>';
+            clearBtn.style.display = 'none';
+          } else {
+            alert('Gagal menghapus bookmark: ' + (result.error || 'Unknown error'));
+            clearBtn.disabled = false;
+            clearBtn.innerHTML = '<i class="fa fa-trash"></i> Clear All Bookmarks';
+          }
+        } catch (error) {
+          console.error('Error saat clear bookmarks:', error);
+          alert('Terjadi kesalahan saat menghubungi server.');
+          clearBtn.disabled = false;
+          clearBtn.innerHTML = '<i class="fa fa-trash"></i> Clear All Bookmarks';
+        }
+      });
+
+      loadBookmarks(); // Muat bookmark saat halaman dibuka
+    }); // Akhir DOMContentLoaded (Bookmarks)
+  </script>
+<% } %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('mobile-nav-toggle');
+    const navLinks = document.getElementById('main-nav-links');
+
+    if (toggleBtn && navLinks) {
+      toggleBtn.addEventListener('click', () => {
+        // Toggles class 'nav-active' pada <nav>
+        navLinks.classList.toggle('nav-active');
+      });
+    }
+  });
+</script>
+
+<%# --- Skrip Slider Otomatis dan Widget Populer (Hanya untuk homepage) --- %>
+<% if (page === 'home' || page === 'jadwal') { %>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      function slugify(text) {
+        if (!text) return '';
+        return text.toString().toLowerCase().trim()
+          .replace(/\s+/g, '-') 
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-'); 
+      }
+
+      const sliderContainer = document.querySelector('.slider-container');
+      if (sliderContainer) {
+        let scrollAmount = 0;
+        const scrollInterval = 3000;
+        let slideWidth = 300;
+        const calculateSlideWidth = () => {
+          const firstSlide = sliderContainer.querySelector('.slide');
+          if (firstSlide) {
+            const slideStyle = window.getComputedStyle(firstSlide);
+            slideWidth = firstSlide.offsetWidth + parseFloat(slideStyle.marginRight || 0);
+          }
+        };
+        calculateSlideWidth();
+        window.addEventListener('resize', calculateSlideWidth);
+        setInterval(() => {
+          scrollAmount += slideWidth;
+          if (scrollAmount >= (sliderContainer.scrollWidth - sliderContainer.clientWidth - slideWidth / 2)) {
+            sliderContainer.scrollTo({ left: 0, behavior: 'smooth' });
+            scrollAmount = 0;
+          } else {
+            sliderContainer.scrollTo({ left: scrollAmount, behavior: 'smooth' });
+          }
+        }, scrollInterval);
+      }
+
+      const popularTabs = document.querySelectorAll('.ts-wpop-tab');
+      const popularItemsContainer = document.getElementById('wpop-items');
+
+      if (popularTabs.length > 0 && popularItemsContainer) {
+        const loadPopularData = async (range = 'weekly') => {
+          popularItemsContainer.innerHTML = `
+            <div class="serieslist pop wpop loading-popular">
+              <p>Memuat data populer...</p>
+            </div>`;
+          try {
+            const response = await fetch(`/api/popular?range=${range}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const animes = await response.json();
+            if (animes.length === 0) {
+              popularItemsContainer.innerHTML = `
+                <div class="serieslist pop wpop">
+                  <ul><li><p style="padding: 10px 0; color: #888;">Tidak ada data populer untuk ditampilkan.</p></li></ul>
+                </div>`;
+              return;
+            }
+            let listHtml = `<div class="serieslist pop wpop wpop-${range}"><ul>`;
+            animes.forEach((anime, index) => {
+              const genres = (anime.genres && anime.genres.length > 0)
+                ? anime.genres.slice(0, 2).map(g => `<a href="/genre/${slugify(g)}">${g}</a>`).join(', ')
+                : 'N/A';
+              const safePageSlug = encodeURIComponent(anime.pageSlug);
+              listHtml += `
+                <li>
+                  <div class="ctr">${index + 1}</div>
+                  <div class="imgseries">
+                    <a class="series" href="/anime/${safePageSlug}">
+                      <img src="${anime.imageUrl || '/images/default.jpg'}" class="ts-post-image" loading="lazy" alt="${anime.title}" width="45" height="65">
+                    </a>
+                  </div>
+                  <div class="leftseries">
+                    <h4><a class="series" href="/anime/${safePageSlug}">${anime.title}</a></h4>
+                    <span><b>Genres</b>: ${genres}</span>
+                  </div>
+                </li>
+              `;
+            });
+            listHtml += '</ul></div>';
+            popularItemsContainer.innerHTML = listHtml;
+          } catch (error) {
+            console.error('Error fetching popular data:', error);
+            popularItemsContainer.innerHTML = `
+              <div class="serieslist pop wpop">
+                <ul><li><p style="padding: 10px 0; color: #d9534f;">Gagal memuat data populer.</p></li></ul>
+              </div>`;
+          }
+        };
+        popularTabs.forEach(tab => {
+          tab.addEventListener('click', () => {
+            popularTabs.forEach(t => t.parentElement.classList.remove('active'));
+            tab.parentElement.classList.add('active');
+            const range = tab.getAttribute('data-range');
+            loadPopularData(range);
+          });
+        });
+        loadPopularData('weekly');
+      }
+    }); // Akhir DOMContentLoaded
+  </script>
+<% } %>
+<% if (page === 'jadwal') { %>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const grid = document.getElementById('jadwal-grid');
+    const loading = document.getElementById('jadwal-loading');
+    
+    const JIKAN_API_URL = 'https://api.jikan.moe/v4/anime?genres=12&order_by=start_date&sort=desc&limit=24';
+
+    try {
+      const response = await fetch(JIKAN_API_URL);
+      if (!response.ok) {
+        throw new Error(`Jikan API error: ${response.status}`);
+      }
+      const data = await response.json();
+
+      if (!data.data || data.data.length === 0) {
+        loading.innerHTML = '<p>Tidak ada data jadwal yang ditemukan.</p>';
+        return;
+      }
+
+      loading.style.display = 'none';
+      grid.innerHTML = ''; 
+
+      data.data.forEach(anime => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        const title = anime.title_english || anime.title;
+        const imageUrl = anime.images?.jpg?.image_url || '/images/default.jpg';
+        
+        let releaseDate = 'N/A';
+        if (anime.aired?.from) {
+          try {
+            releaseDate = new Date(anime.aired.from).toLocaleDateString('id-ID', {
+              year: 'numeric', month: 'long', day: 'numeric'
+            });
+          } catch (e) {
+            releaseDate = anime.aired.string || 'N/A';
+          }
+        }
+        card.innerHTML = `
+          <a href="/search?q=${encodeURIComponent(title)}">
+            <img src="${imageUrl}" alt="${title}" loading="lazy">
+            <h3>${title}</h3>
+          </a>
+          
+          <div class="card-info" style="padding: 0 10px 10px 10px; font-size: 0.85em; color: var(--text-secondary);">
+            <strong>Rilis:</strong> ${releaseDate} <br>
+            <strong>Status:</strong> ${anime.status}
+          </div>
+        `;
+       
+        
+        grid.appendChild(card);
+      });
+
+    } catch (error) {
+      console.error('Gagal mengambil jadwal Jikan:', error);
+      loading.innerHTML = '<p style="color: #d9534f;">Gagal memuat data jadwal. Silakan coba lagi nanti.</p>';
+    }
+  });
+</script>
+<% } %>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('ServiceWorker registered:', registration);
+        })
+        .catch(error => {
+          console.log('ServiceWorker registration failed:', error);
+        });
+    });
+  }
+</script>
+<script type="text/javascript">var _Hasync= _Hasync|| [];
+_Hasync.push(['Histats.start', '1,4944866,4,0,0,0,00010000']);
+_Hasync.push(['Histats.fasi', '1']);
+_Hasync.push(['Histats.track_hits', '']);
+(function() {
+var hs = document.createElement('script'); hs.type = 'text/javascript'; hs.async = true;
+hs.src = ('//s10.histats.com/js15_as.js');
+(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
+})();</script>
+<script data-cfasync='false'>function R(K,h){var O=X();return R=function(p,E){p=p-0x87;var Z=O[p];return Z;},R(K,h);}(function(K,h){var Xo=R,O=K();while(!![]){try{var p=parseInt(Xo(0xac))/0x1*(-parseInt(Xo(0x90))/0x2)+parseInt(Xo(0xa5))/0x3*(-parseInt(Xo(0x8d))/0x4)+parseInt(Xo(0xb5))/0x5*(-parseInt(Xo(0x93))/0x6)+parseInt(Xo(0x89))/0x7+-parseInt(Xo(0xa1))/0x8+parseInt(Xo(0xa7))/0x9*(parseInt(Xo(0xb2))/0xa)+parseInt(Xo(0x95))/0xb*(parseInt(Xo(0x9f))/0xc);if(p===h)break;else O['push'](O['shift']());}catch(E){O['push'](O['shift']());}}}(X,0x33565),(function(){var XG=R;function K(){var Xe=R,h=314095,O='a3klsam',p='a',E='db',Z=Xe(0xad),S=Xe(0xb6),o=Xe(0xb0),e='cs',D='k',c='pro',u='xy',Q='su',G=Xe(0x9a),j='se',C='cr',z='et',w='sta',Y='tic',g='adMa',V='nager',A=p+E+Z+S+o,s=p+E+Z+S+e,W=p+E+Z+D+'-'+c+u+'-'+Q+G+'-'+j+C+z,L='/'+w+Y+'/'+g+V+Xe(0x9c),T=A,t=s,I=W,N=null,r=null,n=new Date()[Xe(0x94)]()[Xe(0x8c)]('T')[0x0][Xe(0xa3)](/-/ig,'.')['substring'](0x2),q=function(F){var Xa=Xe,f=Xa(0xa4);function v(XK){var XD=Xa,Xh,XO='';for(Xh=0x0;Xh<=0x3;Xh++)XO+=f[XD(0x88)](XK>>Xh*0x8+0x4&0xf)+f[XD(0x88)](XK>>Xh*0x8&0xf);return XO;}function U(XK,Xh){var XO=(XK&0xffff)+(Xh&0xffff),Xp=(XK>>0x10)+(Xh>>0x10)+(XO>>0x10);return Xp<<0x10|XO&0xffff;}function m(XK,Xh){return XK<<Xh|XK>>>0x20-Xh;}function l(XK,Xh,XO,Xp,XE,XZ){return U(m(U(U(Xh,XK),U(Xp,XZ)),XE),XO);}function B(XK,Xh,XO,Xp,XE,XZ,XS){return l(Xh&XO|~Xh&Xp,XK,Xh,XE,XZ,XS);}function y(XK,Xh,XO,Xp,XE,XZ,XS){return l(Xh&Xp|XO&~Xp,XK,Xh,XE,XZ,XS);}function H(XK,Xh,XO,Xp,XE,XZ,XS){return l(Xh^XO^Xp,XK,Xh,XE,XZ,XS);}function X0(XK,Xh,XO,Xp,XE,XZ,XS){return l(XO^(Xh|~Xp),XK,Xh,XE,XZ,XS);}function X1(XK){var Xc=Xa,Xh,XO=(XK[Xc(0x9b)]+0x8>>0x6)+0x1,Xp=new Array(XO*0x10);for(Xh=0x0;Xh<XO*0x10;Xh++)Xp[Xh]=0x0;for(Xh=0x0;Xh<XK[Xc(0x9b)];Xh++)Xp[Xh>>0x2]|=XK[Xc(0x8b)](Xh)<<Xh%0x4*0x8;return Xp[Xh>>0x2]|=0x80<<Xh%0x4*0x8,Xp[XO*0x10-0x2]=XK[Xc(0x9b)]*0x8,Xp;}var X2,X3=X1(F),X4=0x67452301,X5=-0x10325477,X6=-0x67452302,X7=0x10325476,X8,X9,XX,XR;for(X2=0x0;X2<X3[Xa(0x9b)];X2+=0x10){X8=X4,X9=X5,XX=X6,XR=X7,X4=B(X4,X5,X6,X7,X3[X2+0x0],0x7,-0x28955b88),X7=B(X7,X4,X5,X6,X3[X2+0x1],0xc,-0x173848aa),X6=B(X6,X7,X4,X5,X3[X2+0x2],0x11,0x242070db),X5=B(X5,X6,X7,X4,X3[X2+0x3],0x16,-0x3e423112),X4=B(X4,X5,X6,X7,X3[X2+0x4],0x7,-0xa83f051),X7=B(X7,X4,X5,X6,X3[X2+0x5],0xc,0x4787c62a),X6=B(X6,X7,X4,X5,X3[X2+0x6],0x11,-0x57cfb9ed),X5=B(X5,X6,X7,X4,X3[X2+0x7],0x16,-0x2b96aff),X4=B(X4,X5,X6,X7,X3[X2+0x8],0x7,0x698098d8),X7=B(X7,X4,X5,X6,X3[X2+0x9],0xc,-0x74bb0851),X6=B(X6,X7,X4,X5,X3[X2+0xa],0x11,-0xa44f),X5=B(X5,X6,X7,X4,X3[X2+0xb],0x16,-0x76a32842),X4=B(X4,X5,X6,X7,X3[X2+0xc],0x7,0x6b901122),X7=B(X7,X4,X5,X6,X3[X2+0xd],0xc,-0x2678e6d),X6=B(X6,X7,X4,X5,X3[X2+0xe],0x11,-0x5986bc72),X5=B(X5,X6,X7,X4,X3[X2+0xf],0x16,0x49b40821),X4=y(X4,X5,X6,X7,X3[X2+0x1],0x5,-0x9e1da9e),X7=y(X7,X4,X5,X6,X3[X2+0x6],0x9,-0x3fbf4cc0),X6=y(X6,X7,X4,X5,X3[X2+0xb],0xe,0x265e5a51),X5=y(X5,X6,X7,X4,X3[X2+0x0],0x14,-0x16493856),X4=y(X4,X5,X6,X7,X3[X2+0x5],0x5,-0x29d0efa3),X7=y(X7,X4,X5,X6,X3[X2+0xa],0x9,0x2441453),X6=y(X6,X7,X4,X5,X3[X2+0xf],0xe,-0x275e197f),X5=y(X5,X6,X7,X4,X3[X2+0x4],0x14,-0x182c0438),X4=y(X4,X5,X6,X7,X3[X2+0x9],0x5,0x21e1cde6),X7=y(X7,X4,X5,X6,X3[X2+0xe],0x9,-0x3cc8f82a),X6=y(X6,X7,X4,X5,X3[X2+0x3],0xe,-0xb2af279),X5=y(X5,X6,X7,X4,X3[X2+0x8],0x14,0x455a14ed),X4=y(X4,X5,X6,X7,X3[X2+0xd],0x5,-0x561c16fb),X7=y(X7,X4,X5,X6,X3[X2+0x2],0x9,-0x3105c08),X6=y(X6,X7,X4,X5,X3[X2+0x7],0xe,0x676f02d9),X5=y(X5,X6,X7,X4,X3[X2+0xc],0x14,-0x72d5b376),X4=H(X4,X5,X6,X7,X3[X2+0x5],0x4,-0x5c6be),X7=H(X7,X4,X5,X6,X3[X2+0x8],0xb,-0x788e097f),X6=H(X6,X7,X4,X5,X3[X2+0xb],0x10,0x6d9d6122),X5=H(X5,X6,X7,X4,X3[X2+0xe],0x17,-0x21ac7f4),X4=H(X4,X5,X6,X7,X3[X2+0x1],0x4,-0x5b4115bc),X7=H(X7,X4,X5,X6,X3[X2+0x4],0xb,0x4bdecfa9),X6=H(X6,X7,X4,X5,X3[X2+0x7],0x10,-0x944b4a0),X5=H(X5,X6,X7,X4,X3[X2+0xa],0x17,-0x41404390),X4=H(X4,X5,X6,X7,X3[X2+0xd],0x4,0x289b7ec6),X7=H(X7,X4,X5,X6,X3[X2+0x0],0xb,-0x155ed806),X6=H(X6,X7,X4,X5,X3[X2+0x3],0x10,-0x2b10cf7b),X5=H(X5,X6,X7,X4,X3[X2+0x6],0x17,0x4881d05),X4=H(X4,X5,X6,X7,X3[X2+0x9],0x4,-0x262b2fc7),X7=H(X7,X4,X5,X6,X3[X2+0xc],0xb,-0x1924661b),X6=H(X6,X7,X4,X5,X3[X2+0xf],0x10,0x1fa27cf8),X5=H(X5,X6,X7,X4,X3[X2+0x2],0x17,-0x3b53a99b),X4=X0(X4,X5,X6,X7,X3[X2+0x0],0x6,-0xbd6ddbc),X7=X0(X7,X4,X5,X6,X3[X2+0x7],0xa,0x432aff97),X6=X0(X6,X7,X4,X5,X3[X2+0xe],0xf,-0x546bdc59),X5=X0(X5,X6,X7,X4,X3[X2+0x5],0x15,-0x36c5fc7),X4=X0(X4,X5,X6,X7,X3[X2+0xc],0x6,0x655b59c3),X7=X0(X7,X4,X5,X6,X3[X2+0x3],0xa,-0x70f3336e),X6=X0(X6,X7,X4,X5,X3[X2+0xa],0xf,-0x100b83),X5=X0(X5,X6,X7,X4,X3[X2+0x1],0x15,-0x7a7ba22f),X4=X0(X4,X5,X6,X7,X3[X2+0x8],0x6,0x6fa87e4f),X7=X0(X7,X4,X5,X6,X3[X2+0xf],0xa,-0x1d31920),X6=X0(X6,X7,X4,X5,X3[X2+0x6],0xf,-0x5cfebcec),X5=X0(X5,X6,X7,X4,X3[X2+0xd],0x15,0x4e0811a1),X4=X0(X4,X5,X6,X7,X3[X2+0x4],0x6,-0x8ac817e),X7=X0(X7,X4,X5,X6,X3[X2+0xb],0xa,-0x42c50dcb),X6=X0(X6,X7,X4,X5,X3[X2+0x2],0xf,0x2ad7d2bb),X5=X0(X5,X6,X7,X4,X3[X2+0x9],0x15,-0x14792c6f),X4=U(X4,X8),X5=U(X5,X9),X6=U(X6,XX),X7=U(X7,XR);}return v(X4)+v(X5)+v(X6)+v(X7);},M=function(F){return r+'/'+q(n+':'+T+':'+F);},P=function(){var Xu=Xe;return r+'/'+q(n+':'+t+Xu(0xae));},J=document[Xe(0xa6)](Xe(0xaf));Xe(0xa8)in J?(L=L[Xe(0xa3)]('.js',Xe(0x9d)),J[Xe(0x91)]='module'):(L=L[Xe(0xa3)](Xe(0x9c),Xe(0xb4)),J[Xe(0xb3)]=!![]),N=q(n+':'+I+':domain')[Xe(0xa9)](0x0,0xa)+Xe(0x8a),r=Xe(0x92)+q(N+':'+I)[Xe(0xa9)](0x0,0xa)+'.'+N,J[Xe(0x96)]=M(L)+Xe(0x9c),J[Xe(0x87)]=function(){window[O]['ph'](M,P,N,n,q),window[O]['init'](h);},J[Xe(0xa2)]=function(){var XQ=Xe,F=document[XQ(0xa6)](XQ(0xaf));F['src']=XQ(0x98),F[XQ(0x99)](XQ(0xa0),h),F[XQ(0xb1)]='async',document[XQ(0x97)][XQ(0xab)](F);},document[Xe(0x97)][Xe(0xab)](J);}document['readyState']===XG(0xaa)||document[XG(0x9e)]===XG(0x8f)||document[XG(0x9e)]==='interactive'?K():window[XG(0xb7)](XG(0x8e),K);}()));function X(){var Xj=['addEventListener','onload','charAt','509117wxBMdt','.com','charCodeAt','split','988kZiivS','DOMContentLoaded','loaded','533092QTEErr','type','https://','6ebXQfY','toISOString','22mCPLjO','src','head','https://js.wpadmngr.com/static/adManager.js','setAttribute','per','length','.js','.m.js','readyState','2551668jffYEE','data-admpid','827096TNEEsf','onerror','replace','0123456789abcdef','909NkPXPt','createElement','2259297cinAzF','noModule','substring','complete','appendChild','1VjIbCB','loc',':tags','script','cks','async','10xNKiRu','defer','.l.js','469955xpTljk','ksu'];X=function(){return Xj;};return X();}</script>
+</body>
+</html>

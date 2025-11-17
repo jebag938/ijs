@@ -1,0 +1,30 @@
+</main> </div> <footer class="admin-footer">
+    Copyright &copy; 2025 - <%= siteName %>
+</footer>
+
+<script>
+(function() {
+    var toggleBtn = document.getElementById('sidebarToggle');
+    var sidebar = document.getElementById('adminSidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    var body = document.body;
+
+    if (!toggleBtn || !sidebar || !overlay) {
+        console.error("Elemen sidebar, toggle, atau overlay tidak ditemukan.");
+        return;
+    }
+
+    // Fungsi untuk membuka/menutup
+    function toggleSidebar() {
+        body.classList.toggle('sidebar-open');
+    }
+
+    // Klik tombol hamburger
+    toggleBtn.addEventListener('click', toggleSidebar);
+    
+    // Klik di area gelap (overlay)
+    overlay.addEventListener('click', toggleSidebar);
+})();
+</script>
+</body>
+</html>

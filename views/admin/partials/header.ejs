@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#e97991"> 
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <title><%= pageTitle %></title>
+    
+    <style>
+        :root {
+            --admin-bg: #1e1e2d;
+            --admin-bg-light: #2a2a3c;
+            --admin-sidebar-bg: #1b1b28;
+            --admin-text: #e0e0e0;
+            --admin-text-muted: #888;
+            --admin-border: #3a3a4a;
+            --admin-primary: #5bc0de;
+            --admin-success: #5cb85c;
+            --admin-danger: #d9534f;
+            --admin-warning: #f0ad4e;
+            --admin-info: #0275d8;
+            --admin-link: #87CEEB;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--admin-bg);
+            color: var(--admin-text);
+            margin: 0;
+            padding: 0;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* --- Sidebar --- */
+        .admin-sidebar {
+            width: 240px;
+            background-color: var(--admin-sidebar-bg);
+            padding: 20px;
+            flex-shrink: 0;
+            position: fixed;
+            height: 100%;
+            overflow-y: auto;
+            z-index: 1000; /* Sidebar harus di atas overlay */
+            transition: transform 0.3s ease-in-out; /* Transisi untuk slide */
+        }
+        .admin-sidebar-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .admin-sidebar-header h2 {
+            margin: 0;
+            color: var(--admin-primary);
+        }
+        .admin-sidebar nav {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .admin-sidebar nav a {
+            padding: 12px 15px;
+            color: var(--admin-text-muted);
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+        .admin-sidebar nav a:hover {
+            background-color: var(--admin-bg-light);
+            color: var(--admin-link);
+        }
+        .admin-sidebar nav a.logout-link {
+            margin-top: 20px;
+            color: var(--admin-danger);
+        }
+        .admin-sidebar nav a.logout-link:hover {
+            background-color: rgba(217, 83, 79, 0.1);
+        }
+        .admin-sidebar nav a[data-page-id="<%= page %>"] {
+             background-color: var(--admin-bg-light);
+             color: white;
+        }
+
+        /* --- Main Content Area --- */
+        .admin-content {
+            margin-left: 240px; /* Lebar sidebar */
+            padding: 30px;
+            flex-grow: 1;
+            transition: margin-left 0.3s ease-in-out; /* Transisi untuk konten */
+        }
+        .admin-content h1 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--admin-border);
+            padding-bottom: 10px;
+        }
+                
+        /* --- Global Admin Table --- */
+        .admin-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em; background-color: var(--admin-bg-light); border-radius: 5px; overflow: hidden; }
+        .admin-table th, .admin-table td { border: 1px solid var(--admin-border); padding: 10px 12px; text-align: left; vertical-align: top; }
+        .admin-table th { background-color: #333; }
+        .admin-table img { max-height: 50px; width: auto; vertical-align: middle; border-radius: 3px; }
+        .admin-table a { color: var(--admin-link); text-decoration: none; }
+        .admin-table a:hover { text-decoration: underline; }
+        .admin-table td:nth-child(2) { word-break: break-all; }
+        .admin-table td:nth-child(3) { word-break: break-all; }
+
+        /* --- Global Admin Form --- */
+        .admin-form { background-color: var(--admin-bg-light); padding: 25px; border-radius: 5px; margin-bottom: 30px; }
+        .admin-form h2, .admin-form h3 { margin-top: 0; border-bottom: 1px solid var(--admin-border); padding-bottom: 10px; }
+        .admin-form label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .admin-form input[type="text"], .admin-form input[type="url"], .admin-form input[type="file"], .admin-form textarea { width: 100%; padding: 10px; margin-bottom: 15px; background-color: var(--admin-bg); border: 1px solid var(--admin-border); color: var(--admin-text); border-radius: 4px; font-family: Arial, sans-serif; font-size: 1em; }
+        .admin-form textarea { min-height: 150px; }
+        .admin-form select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            color: var(--admin-text);
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .admin-form input[type="text"][readonly] { background-color: #333; cursor: not-allowed; }
+        .admin-form small { color: var(--admin-text-muted); display: block; margin-top: -10px; margin-bottom: 10px; }
+        .required-field::after { content: " *"; color: var(--admin-danger); }
+        .form-separator { font-size: 0.9em; color: var(--admin-text-muted); text-align: center; margin-bottom: 15px; }
+
+        /* --- Global Buttons --- */
+        .btn { padding: 10px 20px; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; text-decoration: none; display: inline-block; font-weight: bold; transition: all 0.2s ease; }
+        .btn-success { background-color: var(--admin-success); }
+        .btn-success:hover { background-color: #45a049; }
+        .btn-primary { background-color: var(--admin-info); }
+        .btn-primary:hover { background-color: #025aa5; }
+        .btn-secondary { background-color: var(--admin-primary); }
+        .btn-secondary:hover { background-color: #46b8da; }
+        .btn-danger { background-color: var(--admin-danger); }
+        .btn-danger:hover { background-color: #b52b27; }
+        .btn-warning { background-color: var(--admin-warning); color: #111; }
+        .btn-warning:hover { background-color: #ec971f; }
+        button.btn-danger { font-size: 0.8em !important; padding: 4px 8px !important; }
+
+        /* --- Dashboard Cards --- */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .card { background-color: var(--admin-bg-light); padding: 20px; border-radius: 5px; text-decoration: none; color: var(--admin-text); font-weight: bold; font-size: 1.1em; transition: all 0.2s ease; }
+        .card:hover { background-color: #3a3a4c; color: var(--admin-link); transform: translateY(-2px); }
+        .card.card-special { background-color: var(--admin-warning); color: #111; }
+        .card.card-special:hover { background-color: #ec971f; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background-color: var(--admin-bg-light); padding: 20px 25px; border-radius: 5px; border-left: 5px solid var(--admin-primary); }
+        .stat-card h3 { margin: 0 0 5px 0; font-size: 1.1em; color: var(--admin-text-muted); font-weight: normal; }
+        .stat-card p { margin: 0; font-size: 2.2em; font-weight: bold; color: white; }
+        .stat-card.stat-episodes { border-left-color: var(--admin-success); }
+        
+        /* --- Pagination --- */
+        .pagination { margin: 20px 0; }
+        .pagination a, .pagination span { padding: 8px 12px; margin: 0 2px; border: 1px solid var(--admin-border); background: var(--admin-bg-light); color: var(--admin-link); text-decoration: none; border-radius: 4px; }
+        .pagination span.disabled { color: var(--admin-text-muted); background: #333; }
+        .pagination span.current { background: var(--admin-primary); color: white; border-color: var(--admin-primary); }
+
+        /* --- Utility Classes --- */
+        .warning-box { background-color: #fcf8e3; border: 1px solid #faebcc; color: #8a6d3b; padding: 15px; margin-top: 15px; border-radius: 4px; font-weight: bold; }
+        .warning-box strong { color: var(--admin-danger); }
+        .jikan-search-form { background-color: var(--admin-bg-light); }
+        .jikan-result-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--admin-border); cursor: pointer; }
+        .jikan-result-item:hover { background-color: #4a4a4a; }
+        .jikan-result-item img { width: 50px; height: 70px; object-fit: cover; border-radius: 3px; margin-right: 15px; }
+        .jikan-result-item div { flex-grow: 1; }
+        .jikan-result-item span { font-size: 0.9em; color: var(--admin-text-muted); }
+        #jikan-results { max-height: 300px; overflow-y: auto; background: var(--admin-bg); padding: 10px; border-radius: 4px; margin-top: 15px; }
+        .link-group, .quality-group-admin { border: 1px dashed var(--admin-border); padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+        .link-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .link-row label { flex-basis: 80px; flex-shrink: 0; margin-bottom: 0; }
+        .link-row input { margin-bottom: 0; }
+        .link-row input[name*="[name]"], .link-row input[name*="[host]"] { flex-basis: 150px; flex-shrink: 0; }
+        .link-row input[name*="[url]"] { flex-grow: 1; min-width: 200px; }
+        .quality-header { display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;}
+        .quality-header input { width: auto; margin-bottom: 0;}
+        .character-entry { background: var(--admin-bg); padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid var(--admin-border); }
+        .character-entry h4 { margin-top: 0; }
+        .character-preview-img { max-height: 70px; margin-top: 5px; border-radius: 4px; }
+
+        /* --- Footer --- */
+        .admin-footer {
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 30px;
+            border-top: 1px solid var(--admin-border);
+            color: var(--admin-text-muted);
+            font-size: 0.9em;
+            margin-left: 240px; /* Default PC */
+            transition: margin-left 0.3s ease-in-out;
+        }
+
+        /* =====================================
+        --- CSS RESPONSIVE BARU ---
+        =====================================
+        */
+
+        /* Tombol Hamburger (tersembunyi di PC) */
+        .admin-sidebar-toggle {
+            display: none; /* Sembunyi di PC */
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001; /* Di atas konten, di bawah sidebar */
+            background-color: var(--admin-bg-light);
+            color: var(--admin-text);
+            border: 1px solid var(--admin-border);
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+
+        /* Overlay (tersembunyi di PC) */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999; /* Di bawah sidebar, di atas konten */
+        }
+
+        /* === Media Query untuk Mobile (900px ke bawah) === */
+        @media (max-width: 900px) {
+            .admin-sidebar-toggle {
+                display: block; /* Tampilkan tombol hamburger */
+            }
+
+            .admin-sidebar {
+                transform: translateX(-240px); /* Sembunyikan sidebar ke kiri */
+                box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            }
+
+            .admin-content {
+                margin-left: 0; /* Konten jadi full-width */
+                padding: 20px;
+                padding-top: 80px; /* Beri ruang untuk tombol hamburger */
+            }
+            
+            .admin-footer {
+                margin-left: 0; /* Footer jadi full-width */
+            }
+
+            /* --- State Saat Sidebar Terbuka --- */
+            body.sidebar-open .admin-sidebar {
+                transform: translateX(0); /* Tampilkan sidebar */
+            }
+            body.sidebar-open .sidebar-overlay {
+                display: block; /* Tampilkan overlay */
+            }
+
+            /* --- Rapikan Tampilan di Mobile --- */
+            .stat-grid {
+                grid-template-columns: 1fr; /* Kartu statistik jadi satu kolom */
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr; /* Link navigasi jadi satu kolom */
+            }
+            .link-row {
+                flex-direction: column; /* Form di edit-episode jadi tumpuk */
+                align-items: stretch;
+            }
+            .link-row label {
+                flex-basis: auto; /* Reset basis label */
+            }
+            .link-row input[name*="[name]"],
+            .link-row input[name*="[host]"] {
+                flex-basis: auto;
+            }
+            .link-row .btn-danger {
+                margin-left: 0 !important; /* Tombol remove jadi full-width */
+                width: 100%;
+                text-align: center;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+
+<button class="admin-sidebar-toggle" id="sidebarToggle">
+    &#9776; </button>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+
+<div class="admin-container">
+    
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="admin-sidebar-header">
+            <h2><%= siteName %></h2>
+            <small style="color: #666;">Admin Panel</small>
+        </div>
+        <nav>
+            <a href="/admin" data-page-id="admin-dashboard">Dashboard</a>
+            <a href="/admin/anime/add" data-page-id="admin-add-anime">Tambah Anime Baru</a>
+            <a href="/admin/episode/add" data-page-id="admin-add-episode">Tambah Episode Baru</a>
+            <a href="/admin/anime" data-page-id="admin-anime-list">Kelola Anime</a>
+            <a href="/admin/episodes" data-page-id="admin-episode-list">Kelola Episode</a>
+            <a href="/admin/backup" data-page-id="admin-backup">Backup / Restore</a>
+            <a href="/admin/logout" class="logout-link">Logout</a>
+        </nav>
+    </aside>
+
+    <main class="admin-content">

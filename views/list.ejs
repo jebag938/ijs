@@ -1,0 +1,61 @@
+<%- include('partials/header', { /* data header */ }) %>
+
+
+<h1><%= pageTitle %></h1>
+
+<% if (!animes || animes.length === 0) { %>
+  <p>Tidak ada anime yang ditemukan.</p>
+<% } else { %>
+
+  <div class="grid" id="anime-grid">
+    <% animes.forEach(anime => { %>
+      <div class="card">
+        <a href="/anime/<%= anime.pageSlug %>">
+          <img src="<%= anime.imageUrl || '/images/default.jpg' %>" alt="<%= anime.title %>" loading="lazy">
+          <h3><%= anime.title %></h3>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+
+  <% if (totalPages > 1) { %>
+    <div class="pagination">
+      <% const pageSeparator = baseUrl.includes('?') ? '&' : '?'; %>
+
+      <% if (currentPage > 1) { %>
+        <a href="<%= baseUrl %><%= pageSeparator %>page=<%= currentPage - 1 %>">« Prev</a>
+      <% } else { %>
+        <span class="disabled">« Prev</span>
+      <% } %>
+
+      <% const maxP = 5; let sP = Math.max(1, currentPage - Math.floor(maxP / 2)); let eP = Math.min(totalPages, sP + maxP - 1); if(eP-sP+1<maxP) sP=Math.max(1,eP-maxP+1); %>
+
+      <% if (sP > 1) { %>
+        <a href="<%= baseUrl %><%= pageSeparator %>page=1">1</a>
+        <% if (sP > 2) { %><span class="disabled">...</span><% } %>
+      <% } %>
+
+      <% for (let i = sP; i <= eP; i++) { %>
+        <% if (i === currentPage) { %>
+          <span class="current"><%= i %></span>
+        <% } else { %>
+          <a href="<%= baseUrl %><%= pageSeparator %>page=<%= i %>"><%= i %></a>
+        <% } %>
+      <% } %>
+
+      <% if (eP < totalPages) { %>
+        <% if (eP < totalPages - 1) { %><span class="disabled">...</span><% } %>
+        <a href="<%= baseUrl %><%= pageSeparator %>page=<%= totalPages %>"><%= totalPages %></a>
+      <% } %>
+
+      <% if (currentPage < totalPages) { %>
+        <a href="<%= baseUrl %><%= pageSeparator %>page=<%= currentPage + 1 %>">Next »</a>
+      <% } else { %>
+        <span class="disabled">Next »</span>
+      <% } %>
+    </div>
+  <% } %>
+
+<% } %>
+
+<%- include('partials/footer', { page: page }) %>

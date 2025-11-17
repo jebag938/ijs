@@ -1,0 +1,17 @@
+<%- include('partials/header', { /* data header */ }) %>
+
+<h1>Daftar Genre</h1>
+
+<% if (!genres || genres.length === 0) { %>
+  <p>Belum ada genre yang tersedia.</p>
+<% } else { %>
+  <ul class="genre-list">
+    <% genres.forEach(genre => { %>
+      <li>
+        <a href="/genre/<%= slugify(genre) %>"><%= genre %></a>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('partials/footer', { page: page }) %>

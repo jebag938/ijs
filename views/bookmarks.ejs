@@ -1,0 +1,36 @@
+<%- include('partials/header', { /* data header */ }) %>
+
+<style>
+/* Style tambahan untuk tombol Clear */
+.clear-bookmarks-btn {
+    display: block; /* Agar full width */
+    margin: 15px auto 25px auto; /* Beri jarak */
+    padding: 8px 15px;
+    background-color: #d9534f; /* Warna merah */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    max-width: 200px; /* Batasi lebar */
+    text-align: center;
+}
+.clear-bookmarks-btn:hover {
+    background-color: #c9302c;
+}
+</style>
+
+<h1>Bookmark Saya</h1>
+
+<%# -- Tombol Clear Bookmarks -- %>
+<button class="clear-bookmarks-btn" id="clearBookmarksBtn">
+    <i class="fa fa-trash"></i> Clear All Bookmarks
+</button>
+<%# --------------------------- %>
+
+<div class="grid" id="bookmark-grid">
+  <p id="loading-message">Memuat bookmark...</p>
+</div>
+
+<%- include('partials/footer', { page: page }) %>

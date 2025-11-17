@@ -1,0 +1,324 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+
+<div class="jikan-search-form admin-form">
+    <h2>Generate dari JIKAN API (MyAnimeList)</h2>
+    <div>
+        <label for="jikan-search-query">Cari Judul Anime:</label>
+        <input type="text" id="jikan-search-query" placeholder="Contoh: Frieren">
+    </div>
+    <button type="button" id="jikan-search-btn" class="btn btn-primary">
+        Cari di Jikan
+    </button>
+    
+    <div id="jikan-status" style="color: #eee; margin-top: 15px; display: none;"></div>
+    
+    <div id="jikan-results" style="display: none;">
+        </div>
+</div>
+
+<hr style="margin: 40px 0; border-color: var(--admin-border);">
+
+<h1>Tambah Anime Baru (Manual)</h1>
+<form class="admin-form" id="mainAnimeForm" action="/admin/anime/add" method="POST" enctype="multipart/form-data">
+    <div>
+        <label for="title" class="required-field">Judul:</label>
+        <input type="text" id="title" name="title" required>
+    </div>
+    <div>
+        <label for="pageSlug" class="required-field">Slug (URL unik):</label>
+        <input type="text" id="pageSlug" name="pageSlug" placeholder="contoh: judul-anime-keren" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" title="Hanya huruf kecil, angka, dan tanda hubung (-)">
+         <small>Harus unik. Ini akan jadi nama file gambar.</small>
+    </div>
+    <div>
+        <label for="alternativeTitle">Judul Alternatif:</label>
+        <input type="text" id="alternativeTitle" name="alternativeTitle">
+    </div>
+
+    <hr style="margin: 20px 0; border-color: var(--admin-border);">
+    
+    <div>
+        <label for="animeImage">Upload Gambar Poster (Prioritas):</label>
+        <input type="file" id="animeImage" name="animeImage" accept="image/jpeg,image/png,image/webp">
+        <small>Jika diisi, ini akan digunakan. Akan disimpan sebagai `slug.jpg`</small>
+    </div>
+    <div class="form-separator">
+        --- ATAU ---
+    </div>
+    <div>
+        <label for="imageUrl">Tempel URL Gambar (Fallback):</label>
+        <input type="text" id="imageUrl" name="imageUrl" placeholder="/images/default.jpg jika upload kosong">
+        <small>Digunakan jika tidak ada file yang di-upload.</small>
+    </div>
+
+    <div>
+        <label for="synopsis">Sinopsis:</label>
+        <textarea id="synopsis" name="synopsis"></textarea>
+    </div>
+
+    <hr style="margin: 20px 0; border-color: var(--admin-border);">
+    <h2>Info Detail</h2>
+    <div>
+        <label for="info.Status">Status:</label>
+        <input type="text" id="info.Status" name="info.Status" placeholder="Ongoing / Completed">
+    </div>
+     <div>
+        <label for="info.Released">Released:</label>
+        <input type="text" id="info.Released" name="info.Released" placeholder="Tahun rilis">
+    </div>
+     <div>
+        <label for="info.Type">Type:</label>
+        <input type="text" id="info.Type" name="info.Type" placeholder="OVA / Series">
+    </div>
+     <div>
+        <label for="info.Studio">Studio:</label>
+        <input type="text" id="info.Studio" name="info.Studio">
+    </div>
+     <div>
+        <label for="info.Producers">Producers (pisahkan koma):</label>
+         <input type="text" id="info.Producers" name="info.Producers">
+    </div>
+
+    <hr style="margin: 20px 0; border-color: var(--admin-border);">
+    <h2>Genre</h2>
+    <div>
+        <label for="genres">Genre (pisahkan dengan koma):</label>
+        <input type="text" id="genres" name="genres">
+    </div>
+    
+    <hr style="margin: 20px 0; border-color: var(--admin-border);">
+    <h2>Karakter</h2>
+    
+    <div id="character-list">
+        <p id="no-characters-msg">Belum ada data karakter. Klik tombol di bawah untuk menambahkannya.</p>
+    </div>
+
+    <button type="button" id="add-character-btn" class="btn btn-primary" style="font-size: 0.9em; margin-bottom: 20px;">
+        + Tambah Karakter Baru
+    </button>
+
+    <div id="character-template" style="display: none;">
+        <div class="character-entry">
+            <h4 style="margin-top: 0;">Karakter Baru</h4>
+            <div>
+                <label>Nama Karakter:</label>
+                <input type="text" name="characters[__INDEX__][name]" value="">
+            </div>
+            <div>
+                <label>Peran (Role):</label>
+                <input type="text" name="characters[__INDEX__][role]" value="" placeholder="Contoh: Main, Supporting">
+            </div>
+            <div>
+                <label>URL Gambar:</label>
+                <input type="text" name="characters[__INDEX__][imageUrl]" value="">
+            </div>
+            <button type="button" onclick="removeCharacter(this)" class="btn btn-danger" style="margin-top: 10px;">
+                Hapus Karakter Ini
+            </button>
+        </div>
+    </div>
+    
+    <hr style="margin-top: 30px; border-color: var(--admin-border);">
+    
+    <button type="submit" class="btn btn-success">Tambah Anime</button>
+</form>
+
+<script>
+    // --- SKRIP UNTUK FORM KARAKTER DINAMIS ---
+    let charIndex = 0; 
+    document.getElementById('add-character-btn').addEventListener('click', function(e) {
+        e.preventDefault(); 
+        addCharacterEntry();
+    });
+    
+    function addCharacterEntry(charData = {}) {
+        const template = document.getElementById('character-template').innerHTML;
+        const newEntryWrapper = document.createElement('div');
+        newEntryWrapper.innerHTML = template.replace(/__INDEX__/g, charIndex);
+        const newEntry = newEntryWrapper.firstElementChild;
+        if (charData.name) {
+            newEntry.querySelector('[name$="[name]"]').value = charData.name;
+        }
+        if (charData.role) {
+            newEntry.querySelector('[name$="[role]"]').value = charData.role;
+        }
+        if (charData.imageUrl) {
+            newEntry.querySelector('[name$="[imageUrl]"]').value = charData.imageUrl;
+        }
+        document.getElementById('character-list').appendChild(newEntry);
+        const noCharMsg = document.getElementById('no-characters-msg');
+        if (noCharMsg) {
+            noCharMsg.style.display = 'none';
+        }
+        charIndex++;
+        return newEntry; 
+    }
+
+    function removeCharacter(button) {
+        button.closest('.character-entry').remove();
+        if (document.querySelectorAll('#character-list .character-entry').length === 0) {
+             const noCharMsg = document.getElementById('no-characters-msg');
+             if (noCharMsg) {
+                noCharMsg.style.display = 'block';
+             }
+        }
+    }
+    
+    const mainForm = document.getElementById('mainAnimeForm');
+    mainForm.addEventListener('submit', function(e) {
+        const characterEntries = document.querySelectorAll('#character-list .character-entry');
+        characterEntries.forEach((entry, newIndex) => {
+            entry.querySelectorAll('input').forEach(input => {
+                input.name = input.name.replace(/\[(\d+|__INDEX__)\]/, '[' + newIndex + ']');
+            });
+        });
+    });
+
+    
+    // --- SKRIP UNTUK GENERATOR JIKAN API ---
+    const jikanSearchBtn = document.getElementById('jikan-search-btn');
+    const jikanQueryInput = document.getElementById('jikan-search-query');
+    const jikanResultsDiv = document.getElementById('jikan-results');
+    const jikanStatusDiv = document.getElementById('jikan-status');
+
+    jikanSearchBtn.addEventListener('click', searchJikan);
+    jikanQueryInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchJikan();
+        }
+    });
+
+    async function searchJikan() {
+        const query = jikanQueryInput.value.trim();
+        if (!query) {
+            showJikanStatus('Silakan masukkan judul anime.', 'error');
+            return;
+        }
+        showJikanStatus('Mencari...', 'loading');
+        jikanResultsDiv.style.display = 'none';
+        jikanResultsDiv.innerHTML = '';
+        try {
+            const response = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=10`);
+            if (!response.ok) {
+                throw new Error(`Jikan API error: ${response.statusText}`);
+            }
+            const data = await response.json();
+            if (data.data && data.data.length > 0) {
+                showJikanStatus(`Menampilkan ${data.data.length} hasil untuk "${query}":`, 'success');
+                jikanResultsDiv.style.display = 'block';
+                displayJikanResults(data.data);
+            } else {
+                showJikanStatus(`Tidak ada hasil ditemukan untuk "${query}".`, 'error');
+            }
+        } catch (error) {
+            console.error('Jikan search error:', error);
+            showJikanStatus(`Gagal mengambil data: ${error.message}`, 'error');
+        }
+    }
+
+    function displayJikanResults(results) {
+        results.forEach(anime => {
+            const item = document.createElement('div');
+            item.className = 'jikan-result-item';
+            item.dataset.malId = anime.mal_id;
+            item.innerHTML = `
+                <img src="${anime.images.jpg.small_image_url}" alt="${anime.title}">
+                <div>
+                    <strong>${anime.title}</strong><br>
+                    <span>${anime.type || ''} (${anime.year || 'N/A'})</span>
+                </div>
+            `;
+            item.addEventListener('click', () => fetchAndFill(anime.mal_id, anime.title));
+            jikanResultsDiv.appendChild(item);
+        });
+    }
+
+    async function fetchAndFill(mal_id, title) {
+        showJikanStatus(`Mengambil detail untuk "${title}" (ID: ${mal_id})...`, 'loading');
+        try {
+            const animeResponse = await fetch(`https://api.jikan.moe/v4/anime/${mal_id}/full`);
+            if (!animeResponse.ok) throw new Error('Failed to fetch anime details');
+            const animeFullData = await animeResponse.json();
+            const animeData = animeFullData.data;
+            populateMainForm(animeData);
+            showJikanStatus(`Mengambil karakter untuk "${title}"...`, 'loading');
+            const charResponse = await fetch(`https://api.jikan.moe/v4/anime/${mal_id}/characters`);
+            if (!charResponse.ok) throw new Error('Failed to fetch characters');
+            const charData = await charResponse.json();
+            populateCharacterForm(charData.data);
+            showJikanStatus(`Sukses! Form telah diisi dengan data "${title}". Harap periksa kembali semua field.`, 'success');
+        } catch (error) {
+            console.error('Jikan fill error:', error);
+            showJikanStatus(`Gagal mengisi form: ${error.message}`, 'error');
+        }
+    }
+    
+    function populateMainForm(data) {
+        document.getElementById('title').value = data.title || '';
+        document.getElementById('alternativeTitle').value = data.title_japanese || (data.title_synonyms ? data.title_synonyms.join(', ') : '');
+        const slug = (data.title || '').toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '') 
+            .trim()
+            .replace(/[\s_-]+/g, '-') 
+            .replace(/^-+|-+$/g, '');
+        document.getElementById('pageSlug').value = slug;
+        document.getElementById('imageUrl').value = data.images?.jpg?.large_image_url || '';
+        document.getElementById('synopsis').value = data.synopsis || '';
+        
+        const statusInput = document.querySelector('[name="info.Status"]');
+        if (statusInput) {
+            let status = 'Unknown'; 
+            if (data.status === 'Finished Airing') {
+                status = 'Completed'; 
+            } else if (data.status === 'Currently Airing') {
+                status = 'Ongoing'; 
+            } else if (data.status) {
+                status = data.status; 
+            }
+            statusInput.value = status;
+        } else {
+            console.warn('Input status [name="info.Status"] tidak ditemukan.');
+        }
+        
+        document.querySelector('[name="info.Released"]').value = data.year || data.aired?.prop?.from?.year || '';
+        document.querySelector('[name="info.Type"]').value = data.type || '';
+        document.querySelector('[name="info.Studio"]').value = data.studios?.map(s => s.name).join(', ') || '';
+        document.querySelector('[name="info.Producers"]').value = data.producers?.map(p => p.name).join(', ') || '';
+        document.getElementById('genres').value = data.genres?.map(g => g.name).join(', ') || '';
+    }
+    
+    function populateCharacterForm(characters) {
+        document.getElementById('character-list').innerHTML = ''; 
+        charIndex = 0; 
+        const mainCharacters = characters
+            .filter(c => c.role === 'Main')
+            .slice(0, 8); 
+            
+        if (mainCharacters.length === 0) {
+            document.getElementById('character-list').innerHTML = '<p id="no-characters-msg">Tidak ada karakter "Main" ditemukan oleh Jikan.</p>';
+            return;
+        }
+        mainCharacters.forEach(char => {
+            const charData = {
+                name: char.character.name,
+                role: char.role,
+                imageUrl: char.character.images?.jpg?.image_url || ''
+            };
+            addCharacterEntry(charData); 
+        });
+    }
+
+    function showJikanStatus(message, type = 'info') {
+        jikanStatusDiv.textContent = message;
+        jikanStatusDiv.style.display = 'block';
+        if (type === 'error') {
+            jikanStatusDiv.style.color = 'var(--admin-danger)';
+        } else if (type === 'success') {
+            jikanStatusDiv.style.color = 'var(--admin-success)';
+        } else {
+            jikanStatusDiv.style.color = 'var(--admin-text)';
+        }
+    }
+</script>
+
+<%- include('../admin/partials/footer', { page: page }) %>

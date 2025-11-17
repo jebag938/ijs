@@ -1,0 +1,63 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+
+<h1>Admin - Daftar Anime</h1>
+
+<form class="admin-form" action="/admin/anime" method="GET" style="padding: 20px; display: flex; gap: 10px; align-items: center;">
+    <input type="text" name="search" placeholder="Cari berdasarkan Judul atau Slug..." value="<%= (typeof searchQuery !== 'undefined' && searchQuery) ? searchQuery : '' %>" style="margin-bottom: 0; max-width: 400px;">
+    <button type="submit" class="btn btn-secondary" style="padding: 10px 15px; font-size: 1em;">Cari</button>
+    <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
+        <a href="/admin/anime">Clear</a>
+    <% } %>
+</form>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Gambar</th>
+            <th>Judul</th>
+            <th>Slug</th>
+            <th>Status</th>
+            <th>Terakhir Update</th>
+            <th>Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% if (animes.length === 0) { %>
+            <tr>
+                <td colspan="6" style="text-align: center;">Tidak ada anime yang cocok ditemukan.</td>
+            </tr>
+        <% } %>
+        <% animes.forEach(anime => { %>
+            <tr>
+                <td><img src="<%= anime.imageUrl || '/images/default.jpg' %>" alt="" loading="lazy"></td>
+                <td><%= anime.title %></td>
+                <td><%= anime.pageSlug %></td>
+                <td><%= anime.info?.Status || 'N/A' %></td>
+                <td><%= new Date(anime.updatedAt).toLocaleDateString('id-ID') %></td>
+                <td>
+                    <a href="/admin/anime/<%= encodeURIComponent(anime.pageSlug) %>/edit">Edit</a>
+                    |
+                    <a href="/anime/<%= encodeURIComponent(anime.pageSlug) %>" target="_blank">Lihat</a>
+                </td>
+            </tr>
+        <% }) %>
+    </tbody>
+</table>
+
+<% if (totalPages > 1) { %>
+    <div class="pagination">
+      <% const pageSeparator = baseUrl.includes('?') ? '&' : '?'; %>
+      <% if (currentPage > 1) { %> <a href="<%= baseUrl %><%= pageSeparator %>page=<%= currentPage - 1 %>">« Prev</a> <% } else { %> <span class="disabled">« Prev</span> <% } %>
+      
+      <% const maxP = 5; let sP = Math.max(1, currentPage - Math.floor(maxP / 2));
+      let eP = Math.min(totalPages, sP + maxP - 1); if(eP-sP+1<maxP) sP=Math.max(1,eP-maxP+1);
+      %>
+      <% if (sP > 1) { %> <a href="<%= baseUrl %><%= pageSeparator %>page=1">1</a> <% if (sP > 2) { %> <span class="disabled">...</span> <% } %> <% } %>
+      <% for (let i = sP; i <= eP; i++) { %> <% if (i === currentPage) { %> <span class="current"><%= i %></span> <% } else { %> <a href="<%= baseUrl %><%= pageSeparator %>page=<%= i %>"><%= i %></a> <% } %> <% } %>
+      <% if (eP < totalPages) { %> <% if (eP < totalPages - 1) { %> <span class="disabled">...</span> <% } %> <a href="<%= baseUrl %><%= pageSeparator %>page=<%= totalPages %>"><%= totalPages %></a> <% } %>
+      
+      <% if (currentPage < totalPages) { %> <a href="<%= baseUrl %><%= pageSeparator %>page=<%= currentPage + 1 %>">Next »</a> <% } else { %> <span class="disabled">Next »</span> <% } %>
+    </div>
+<% } %>
+
+<%- include('../admin/partials/footer', { page: page }) %>
